@@ -15,9 +15,6 @@ main = do
    -- Fixes some issues with output text not displaying in the console.
    hSetBuffering stdout NoBuffering
 
-   -- let !imgU =
-   --        I.makeImage (1600, 1600) (\(x, y) -> 0.1) :: I.Image I.RPU I.Y Double
-   -- I.writeImage "C:\\Users\\David White\\Pictures\\test\\test.png" imgU
    putStrLn "Select a fractal to generate:"
    putStrLn "   1. Mandelbrot Set"
    putStrLn "   2. Julia Set"
@@ -37,7 +34,12 @@ main = do
    maxIterations <- fmap read getLine
    putStr "File path = "
    path <- getLine
-   putStrLn "Select an animation:"
+
+
+   -- TODO Add color scheme selection
+
+
+   putStrLn "Select an animation type:"
    putStrLn "  1. Power"
    putStrLn "  2. Zoom"
    putStrLn "  3. Maximum Iterations"
@@ -46,41 +48,26 @@ main = do
    (startVal, endVal, increment) <- getAnimPrefs
    let pixelSize = (2 * distance) / (fromIntegral $ pH - 1)
    let rMin      = rC - distance
-   let iMin = iC - (pixelSize * (fromIntegral (pV - 1) / 2))
+   let iMax = iC + (pixelSize * (fromIntegral (pV - 1) / 2))
+
+   -- let (fractalFunction, complexGen) = case (fracType, animType) of
+   --   (1, 1) ->
+   --      ( mandelbrotPoint maxIterations
+   --      , \(r, c) ->
+   --         (fromIntegral c * pixelSize + rMin)
+   --            :+ (fromIntegral r * pixelSize + iMin)
+   --      )
 
    let fractalFunction = case (fracType, animType) of
           (1, 1) -> mandelbrotPoint maxIterations
 
-  --         2 -> do
-  --            getAnimPrefs
-  --         3 -> do
-  --            getAnimPrefs
-
    let indexToComplex (r, c) =
           (fromIntegral c * pixelSize + rMin)
-             :+ (fromIntegral r * pixelSize + iMin)
+             :+ (iMax - fromIntegral r * pixelSize)
 
    let range = if startVal == endVal
           then [startVal]
           else [startVal, startVal + increment, endVal]
-
-   let test =
-          I.makeImageR
-             I.VS
-             (pV, pH)
-             (\point ->
-                I.PixelRGB 0 0
-                   . floor
-                   . (* 255)
-                   . colorGreyscale 10
-                   . fractalFunction 2
-                   $ indexToComplex point
-             ) :: I.Image I.VS I.RGB Word8
-
-   --print $ I.index test (0, 0)
-   --printPixels test (pV - 1, pH - 1) (0, 0)
-
-   I.displayImage test
 
    mapM_
       (\value -> I.writeImage
@@ -104,12 +91,7 @@ main = do
          (I.makeImageR
             I.RPU
             (pV, pH)
-            (\point ->
-               I.PixelRGB 0 0
-                  . colorGreyscale 10
-                  . fractalFunction 2
-                  $ indexToComplex point
-            )
+            (\point -> colorHue 250 . fractalFunction value $ indexToComplex point)
          )
       )
       range
@@ -136,12 +118,27 @@ getAnimPrefs = do
          frames <- fmap read getLine
          return (startVal, endVal, (endVal - startVal) / (frames - 1))
 
-colorGreyscale :: Double -> Maybe Double -> Double
-colorGreyscale _ Nothing = 0
-colorGreyscale period (Just x) | val < p   = val / p
-                               | otherwise = (period - val) / p
+mod' :: RealFloat a => a -> a -> a
+mod' x y = x - (y * (fromIntegral $ truncate (x / y)))
+
+colorGreyscale :: Double -> Maybe Double -> I.Pixel I.RGB Double
+colorGreyscale _ Nothing = I.PixelRGB 0 0 0
+colorGreyscale period (Just x)
+   | val < p = I.PixelRGB (val / p) (val / p) (val / p)
+   | otherwise = I.PixelRGB ((period - val) / p)
+                            ((period - val) / p)
+                            ((period - val) / p)
  where
   p   = period / 2
   val = mod' x period
 
-mod' x y = x - (y * (fromIntegral $ truncate (x / y)))
+colorHue :: Double -> Maybe Double -> I.Pixel I.RGB Double
+colorHue _ Nothing                    = I.PixelRGB 0         0         0        
+colorHue period (Just i) | x <= 1 / 6 = I.PixelRGB 1         x'        0        
+                         | x <= 1 / 3 = I.PixelRGB (2 - x')  1         0        
+                         | x <= 1 / 2 = I.PixelRGB 0         1         (x' - 2) 
+                         | x <= 2 / 3 = I.PixelRGB 0         (4 - x')  1        
+                         | x <= 5 / 6 = I.PixelRGB (x' - 4)  0         1        
+                         | otherwise  = I.PixelRGB 1         0         (6 - x') 
+   where x = (i `mod'` period) / period
+         x' = 6 * x
