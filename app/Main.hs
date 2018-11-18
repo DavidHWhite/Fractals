@@ -67,7 +67,7 @@ main = do
 
    let range = if startVal == endVal
           then [startVal]
-          else [startVal, startVal + increment, endVal]
+          else [startVal, startVal + increment .. endVal]
 
    mapM_
       (\value -> I.writeImage
