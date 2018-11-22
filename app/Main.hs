@@ -51,12 +51,12 @@ main = do
    let iMax = iC + (pixelSize * (fromIntegral (pV - 1) / 2))
 
    -- let (fractalFunction, complexGen) = case (fracType, animType) of
-   --   (1, 1) ->
-   --      ( mandelbrotPoint maxIterations
-   --      , \(r, c) ->
-   --         (fromIntegral c * pixelSize + rMin)
-   --            :+ (fromIntegral r * pixelSize + iMin)
-   --      )
+   --        (1, 1) ->
+   --           ( mandelbrotPoint maxIterations
+   --           , \(r, c) ->
+   --              (fromIntegral c * pixelSize + rMin)
+   --                 :+ (iMax - fromIntegral r * pixelSize)
+   --           )
 
    let fractalFunction = case (fracType, animType) of
           (1, 1) -> mandelbrotPoint maxIterations
@@ -91,7 +91,9 @@ main = do
          (I.makeImageR
             I.RPU
             (pV, pH)
-            (\point -> colorHue 250 . fractalFunction value $ indexToComplex point)
+            (\point ->
+               colorHue 100 . fractalFunction value pixelSize $ indexToComplex point
+            )
          )
       )
       range
@@ -142,3 +144,7 @@ colorHue period (Just i) | x <= 1 / 6 = I.PixelRGB 1         x'        0
                          | otherwise  = I.PixelRGB 1         0         (6 - x') 
    where x = (i `mod'` period) / period
          x' = 6 * x
+
+-- colorGradient :: I.Pixel I.RGB Double -> [I.Pixel I.RGB Double] -> Double -> Maybe Double -> I.Pixel I.RGB Double
+-- colorGradient convergent _ _ Nothing = convergent
+-- colorGradient _ 
