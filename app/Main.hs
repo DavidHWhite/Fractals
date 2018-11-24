@@ -34,6 +34,8 @@ main = do
    maxIterations <- fmap read getLine
    putStr "File path = "
    path <- getLine
+   putStr "Color palette length  = "
+   paletteLength <- fmap read getLine
 
 
    -- TODO Add color scheme selection
@@ -50,13 +52,13 @@ main = do
    let rMin      = rC - distance
    let iMax = iC + (pixelSize * (fromIntegral (pV - 1) / 2))
 
-   -- let (fractalFunction, complexGen) = case (fracType, animType) of
-   --        (1, 1) ->
-   --           ( mandelbrotPoint maxIterations
-   --           , \(r, c) ->
-   --              (fromIntegral c * pixelSize + rMin)
-   --                 :+ (iMax - fromIntegral r * pixelSize)
-   --           )
+   let (fractalFunction, complexGen) = case (fracType, animType) of
+          (1, 1) ->
+             ( mandelbrotPoint maxIterations
+             , \(r, c) ->
+                (fromIntegral c * pixelSize + rMin)
+                   :+ (iMax - fromIntegral r * pixelSize)
+             )
 
    let fractalFunction = case (fracType, animType) of
           (1, 1) -> mandelbrotPoint maxIterations
@@ -83,6 +85,10 @@ main = do
          ++ ','
          :  (show distance)
          ++ ','
+         :  (show maxIterations)
+         ++ ','
+         :  (show paletteLength)
+         ++ ','
          :  (take (length $ show $ endVal - increment)
                   ((show value) ++ (repeat '0'))
             )
@@ -92,7 +98,7 @@ main = do
             I.RPU
             (pV, pH)
             (\point ->
-               colorHue 100 . fractalFunction value pixelSize $ indexToComplex point
+               colorHue paletteLength . fractalFunction value pixelSize $ indexToComplex point
             )
          )
       )
