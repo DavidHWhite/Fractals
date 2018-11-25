@@ -9,8 +9,9 @@ import           Data.Complex
 data PointResult = Convergent | Divergent Int (Complex Double)
 
 mandelbrotPoint :: Int -> Double -> Complex Double -> Maybe Double
-mandelbrotPoint maxIterations power = normalize . iteratePoint
- where
+mandelbrotPoint maxIterations power point =
+   normalize . iteratePoint $ point
+   where
   maxMagnitude = 50
   -- Prevents the aliasing present in generators which color based purely on escape time
   normalize Convergent      = Nothing
