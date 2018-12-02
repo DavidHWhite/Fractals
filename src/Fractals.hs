@@ -1,6 +1,6 @@
 module Fractals
-   ( PointResult
-   , mandelbrotPoint
+   ( mandelbrotPoint
+   , juliaPoint
    )
 where
 
@@ -10,15 +10,29 @@ data PointResult = Convergent | Divergent Int (Complex Double)
 
 mandelbrotPoint :: Int -> Double -> Complex Double -> Maybe Double
 mandelbrotPoint maxIterations power point =
-   normalize . iteratePoint $ point
-   where
+   fPoint maxIterations power (\d z -> z ** (d :+ 0) + point) point
+
+juliaPoint :: Int -> Double -> Complex Double -> Complex Double -> Maybe Double
+juliaPoint maxIterations power c point =
+   fPoint maxIterations power (\d z -> z ** (d :+ 0) + c) point
+
+fPoint
+   :: Int
+   -> Double
+   -> (Double -> Complex Double -> Complex Double)
+   -> Complex Double
+   -> Maybe Double
+fPoint maxIterations power f z0 =
+   normalize .
+   iteratePoint $ z0
+ where
   maxMagnitude = 50
   -- Main iteration function
   iteratePoint point' =
      case
            dropWhile ((< maxMagnitude) . magnitude)
            . take (maxIterations + 1)
-           $ iterate (\z -> z ** (power :+ 0) + point') point'
+           $ iterate (f power) point'
         of
            []       -> Convergent
            (x : xs) -> Divergent (maxIterations - length xs) x

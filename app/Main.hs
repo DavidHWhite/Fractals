@@ -18,7 +18,6 @@ main = do
    putStrLn "Select a fractal to generate:"
    putStrLn "   1. Mandelbrot Set"
    putStrLn "   2. Julia Set"
-   putStrLn "   3. Buddhabrot"
    fracType <- fmap read getLine
    putStr "Pixels across = "
    pH <- fmap read getLine
@@ -47,98 +46,115 @@ main = do
    putStrLn "  1. Power"
    putStrLn "  2. Horizontal range"
    putStrLn "  3. Maximum Iterations"
+   if fracType == 2 then putStrLn "  4. Polar C-Value" else return ()
    putStr "Type = "
-   if fracType == 2 then putStrLn "  4. Circular C-Value" else return ()
    animType <- fmap read getLine
    if animType == 3
       then
          putStrLn
          $  "Be aware that a frame's maximum iteration count must be an "
          ++ "integral value, potentially causing unexpected behavior in "
-         ++ "your animation if your frame count is > maxValue - minValue + 1."
+         ++ "your animation if your frame count is > (maxValue - minValue + 1)."
       else return ()
-   (startVal, endVal, increment, frames) <- getAnimPrefs
-      (case animType of
-         1         -> power
-         2         -> distance
-         3         -> fromIntegral maxIterations
-         otherwise -> 1.0
-      )
+
+   (startVal, endVal, increment, frames) <- if fracType == 2 && animType == 4
+      then return (0, 0, 0, 0)
+      else getAnimPrefs
+         (case animType of
+            1         -> power
+            2         -> distance
+            3         -> fromIntegral maxIterations
+            otherwise -> 1.0
+         )
+   (juliaC, juliaMagnitude, juliaFrames) <- if fracType == 2
+      then if animType == 4
+         then do
+            putStr "C-Value magnitude = "
+            m <- fmap read $ getLine
+            putStr "Frames = "
+            f <- fmap read $ getLine
+            return (0, m, f)
+         else do
+            putStr "C-Value = "
+            x <- fmap read $ getLine
+            return (x, 0, 0)
+      else return (0, 0, 0)
    let pixelSize = (2 * distance) / (fromIntegral $ pH - 1)
    let rMin      = rC - distance
    let iMax = iC + (pixelSize * (fromIntegral (pV - 1) / 2))
-
    let halfV     = 0.5 * fromIntegral pV
    let halfH     = 0.5 * fromIntegral pH
-   fractalFunction <- case (fracType, animType) of
-      -- Mandelbrot power animation
-      (1, 1) -> return $ \power' (r, c) ->
-         mandelbrotPoint maxIterations power'
-            $  (rMin + fromIntegral c * pixelSize)
-            :+ (iMax - fromIntegral r * pixelSize)
-      -- Mandelbrot zoom animation
-      (1, 2) -> return $ \value (r, c) ->
-         mandelbrotPoint maxIterations power
-            $  ((fromIntegral c - halfH) * pixelSize * value + rC)
-            :+ ((fromIntegral r - halfV) * pixelSize * value - iC)
-      -- Mandelbrot maximum iteration count animation
-      (1, 3) -> return $ \maxIterations' (r, c) ->
-         mandelbrotPoint (floor maxIterations') power
-            $  (fromIntegral c * pixelSize + rMin)
-            :+ (iMax - fromIntegral r * pixelSize)
-      -- (2, 1) ->
+
+   let
+      fractalFunction = case (fracType, animType) of
+         -- Mandelbrot power animation
+         (1, 1) -> \power' (r, c) ->
+            mandelbrotPoint maxIterations power'
+               $  (rMin + fromIntegral c * pixelSize)
+               :+ (iMax - fromIntegral r * pixelSize)
+         -- Mandelbrot zoom animation
+         (1, 2) -> \zoomFactor (r, c) ->
+            mandelbrotPoint maxIterations power
+               $  ((fromIntegral c - halfH) * pixelSize * zoomFactor + rC)
+               :+ ((fromIntegral r - halfV) * pixelSize * zoomFactor - iC)
+         -- Mandelbrot maximum iteration count animation
+         (1, 3) -> \maxIterations' (r, c) ->
+            mandelbrotPoint (floor maxIterations') power
+               $  (fromIntegral c * pixelSize + rMin)
+               :+ (iMax - fromIntegral r * pixelSize)
+         -- Julia power animation
+         (2, 1) -> \power' (r, c) ->
+            juliaPoint maxIterations power' juliaC
+               $  (rMin + fromIntegral c * pixelSize)
+               :+ (iMax - fromIntegral r * pixelSize)
+         -- Julia zoom animation
+         (2, 2) -> \zoomFactor (r, c) ->
+            juliaPoint maxIterations power juliaC
+               $  ((fromIntegral c - halfH) * pixelSize * zoomFactor + rC)
+               :+ ((fromIntegral r - halfV) * pixelSize * zoomFactor - iC)
+         -- Julia maximum iteration count animation
+         (2, 3) -> \maxIterations' (r, c) ->
+            juliaPoint (floor maxIterations') power juliaC
+               $  (fromIntegral c * pixelSize + rMin)
+               :+ (iMax - fromIntegral r * pixelSize)
+         -- Julia polar c-value animation
+         (2, 4) -> \theta (r, c) ->
+            juliaPoint maxIterations power (mkPolar juliaMagnitude $ theta)
+               $  (fromIntegral c * pixelSize + rMin)
+               :+ (iMax - fromIntegral r * pixelSize)
+         -- Invalid input handling
+         otherwise -> error "Invalid fractal type or animation type."
 
    -- Only used if animating zoom
    let pixelScale = exp $ (log (endVal / startVal)) / (frames - 1)
 
-   let range = if startVal == endVal
-          then [startVal]
-          else if animType == 2
-             then map (pixelScale **) [0 .. frames - 1]
-             else [startVal, startVal + increment .. endVal]
+   let
+      range = if animType == 2
+         then map (pixelScale **) [0 .. frames - 1]
+         else if frames == 1 || juliaFrames == 1
+            then [startVal]
+            else if animType == 4
+               then map ((*) $ 2 * pi / juliaFrames) [0 .. juliaFrames - 1]
+               else [startVal, startVal + increment .. endVal]
 
-   let nameLength = length $ show $ ((!!) range $ length range - 2) - increment
+   let nameLength =
+          length . show $ ((!!) range $ length range - (min 2 $ length range))
 
    mapM_
-      (\value -> I.writeImage
-         (  path
-         ++ '\\'
-         -- :  (show pH)
-         -- ++ ','
-         -- :  (show pV)
-         -- ++ ','
-         -- :  (show rC)
-         -- ++ ','
-         -- :  (show iC)
-         -- ++ ','
-         -- :  (show distance)
-         -- ++ ','
-         -- :  (show maxIterations)
-         -- ++ ','
-         -- :  (show power)
-         -- ++ ','
-         -- :  (show paletteLength)
-         -- ++ ','
-         :  (take nameLength $ (show value) ++ (repeat '0'))
-         ++ ".png"
-         )
-         (I.makeImageR
-            I.RPU
-            (pV, pH)
-            (\point -> colorFunc paletteLength $ fractalFunction value point)
-         )
+      (\frame ->
+         let value = range !! frame
+         in
+            I.writeImage
+               (path ++ '\\' : show frame ++ ".png")
+               (I.makeImageR
+                  I.RPU
+                  (pV, pH)
+                  (\point ->
+                     colorFunc paletteLength $ fractalFunction value point
+                  )
+               )
       )
-      range
-
-printPixels image (rMax, cMax) (r, c) = do
-   print $ I.index image (r, c)
-   if c == cMax
-      then if r == rMax
-         then putStrLn "Done"
-         else do
-            putStrLn ""
-            printPixels image (rMax, cMax) (r + 1, 0)
-      else printPixels image (rMax, cMax) (r, c + 1)
+      [0 .. floor (if animType == 4 then juliaFrames else frames) - 1]
 
 getAnimPrefs startVal = do
    putStr "Ending value = "
