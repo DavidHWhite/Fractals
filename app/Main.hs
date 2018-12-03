@@ -19,6 +19,9 @@ main = do
    putStrLn "   1. Mandelbrot Set"
    putStrLn "   2. Julia Set"
    fracType <- fmap read getLine
+   if fracType < 1 || 2 < fracType
+      then error "Invalid fractal type"
+      else return ()
    putStr "Pixels across = "
    pH <- fmap read getLine
    putStr "Pixels down = "
@@ -49,6 +52,9 @@ main = do
    if fracType == 2 then putStrLn "  4. Polar C-Value" else return ()
    putStr "Type = "
    animType <- fmap read getLine
+   if animType < 1 || 3 < animType
+      then error "Invalid animation type"
+      else return ()
    if animType == 3
       then
          putStrLn
@@ -70,14 +76,32 @@ main = do
       then if animType == 4
          then do
             putStr "C-Value magnitude = "
-            m <- fmap read $ getLine
+            m <- fmap read getLine
             putStr "Frames = "
-            f <- fmap read $ getLine
+            f <- fmap read getLine
             return (0, m, f)
          else do
-            putStr "C-Value = "
-            x <- fmap read $ getLine
-            return (x, 0, 0)
+            putStrLn "Select a C-Value definition method"
+            putStrLn "  1. Rectangular"
+            putStrLn "  2. Polar"
+            putStr "Method = "
+            getLine
+               >>= (\x -> case x of
+                      "1" -> do
+                         putStr "C-Value real component = "
+                         r <- fmap read getLine
+                         putStr "C-Value imaginary component = "
+                         i <- fmap read getLine
+                         return $ r :+ i
+                      "2" -> do
+                         putStr "C-Value magnitude = "
+                         m <- fmap read getLine
+                         putStr "C-Value phase = "
+                         theta <- fmap read getLine
+                         return $ mkPolar m theta
+                      otherwise -> error "Invalid definition method"
+                   )
+               >>= \x -> return (x, 0, 0)
       else return (0, 0, 0)
    let pixelSize = (2 * distance) / (fromIntegral $ pH - 1)
    let rMin      = rC - distance
