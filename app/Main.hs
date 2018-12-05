@@ -12,16 +12,15 @@ import           Data.Word
 
 main :: IO ()
 main = do
-   -- Fixes some issues with output text not displaying in the console.
+   -- Fixes some issues with output text not displaying in the console
    hSetBuffering stdout NoBuffering
 
    putStrLn "Select a fractal to generate:"
    putStrLn "   1. Mandelbrot Set"
    putStrLn "   2. Julia Set"
+   putStr "Type = "
    fracType <- fmap read getLine
-   if fracType < 1 || 2 < fracType
-      then error "Invalid fractal type"
-      else return ()
+   if fracType < 1 || 2 < fracType then error "Invalid fractal type" else return ()
    putStr "Pixels across = "
    pH <- fmap read getLine
    putStr "Pixels down = "
@@ -38,6 +37,8 @@ main = do
    power <- fmap read getLine
    putStr "File path = "
    path <- getLine
+   putStr "Should antialiasing be used? (True/False) "
+   aaEnable <- fmap read getLine
    putStrLn "Select a color function:"
    putStrLn "  1. Greyscale"
    putStrLn "  2. Full Hue"
@@ -52,9 +53,7 @@ main = do
    if fracType == 2 then putStrLn "  4. Polar C-Value" else return ()
    putStr "Type = "
    animType <- fmap read getLine
-   if animType < 1 || 3 < animType
-      then error "Invalid animation type"
-      else return ()
+   if animType < 1 || 3 < animType then error "Invalid animation type" else return ()
    if animType == 3
       then
          putStrLn
@@ -88,9 +87,9 @@ main = do
             getLine
                >>= (\x -> case x of
                       "1" -> do
-                         putStr "C-Value real component = "
+                         putStr "C-Value r = "
                          r <- fmap read getLine
-                         putStr "C-Value imaginary component = "
+                         putStr "C-Value i = "
                          i <- fmap read getLine
                          return $ r :+ i
                       "2" -> do
@@ -113,37 +112,41 @@ main = do
       fractalFunction = case (fracType, animType) of
          -- Mandelbrot power animation
          (1, 1) -> \power' (r, c) ->
-            mandelbrotPoint maxIterations power'
+            mandelbrotPoint aaEnable pixelSize maxIterations power'
                $  (rMin + fromIntegral c * pixelSize)
                :+ (iMax - fromIntegral r * pixelSize)
          -- Mandelbrot zoom animation
          (1, 2) -> \zoomFactor (r, c) ->
-            mandelbrotPoint maxIterations power
+            mandelbrotPoint aaEnable (pixelSize * zoomFactor) maxIterations power
                $  ((fromIntegral c - halfH) * pixelSize * zoomFactor + rC)
                :+ ((fromIntegral r - halfV) * pixelSize * zoomFactor - iC)
          -- Mandelbrot maximum iteration count animation
          (1, 3) -> \maxIterations' (r, c) ->
-            mandelbrotPoint (floor maxIterations') power
+            mandelbrotPoint aaEnable pixelSize (floor maxIterations') power
                $  (fromIntegral c * pixelSize + rMin)
                :+ (iMax - fromIntegral r * pixelSize)
          -- Julia power animation
          (2, 1) -> \power' (r, c) ->
-            juliaPoint maxIterations power' juliaC
+            juliaPoint aaEnable pixelSize maxIterations power' juliaC
                $  (rMin + fromIntegral c * pixelSize)
                :+ (iMax - fromIntegral r * pixelSize)
          -- Julia zoom animation
          (2, 2) -> \zoomFactor (r, c) ->
-            juliaPoint maxIterations power juliaC
+            juliaPoint aaEnable (pixelSize * zoomFactor) maxIterations power juliaC
                $  ((fromIntegral c - halfH) * pixelSize * zoomFactor + rC)
                :+ ((fromIntegral r - halfV) * pixelSize * zoomFactor - iC)
          -- Julia maximum iteration count animation
          (2, 3) -> \maxIterations' (r, c) ->
-            juliaPoint (floor maxIterations') power juliaC
+            juliaPoint aaEnable pixelSize (floor maxIterations') power juliaC
                $  (fromIntegral c * pixelSize + rMin)
                :+ (iMax - fromIntegral r * pixelSize)
          -- Julia polar c-value animation
          (2, 4) -> \theta (r, c) ->
-            juliaPoint maxIterations power (mkPolar juliaMagnitude $ theta)
+            juliaPoint aaEnable
+                       pixelSize
+                       maxIterations
+                       power
+                       (mkPolar juliaMagnitude $ theta)
                $  (fromIntegral c * pixelSize + rMin)
                :+ (iMax - fromIntegral r * pixelSize)
          -- Invalid input handling
@@ -152,17 +155,15 @@ main = do
    -- Only used if animating zoom
    let pixelScale = exp $ (log (endVal / startVal)) / (frames - 1)
 
-   let
-      range = if animType == 2
-         then map (pixelScale **) [0 .. frames - 1]
-         else if frames == 1 || juliaFrames == 1
-            then [startVal]
-            else if animType == 4
-               then map ((*) $ 2 * pi / juliaFrames) [0 .. juliaFrames - 1]
-               else [startVal, startVal + increment .. endVal]
+   let range = if animType == 2
+          then map (pixelScale **) [0 .. frames - 1]
+          else if frames == 1 || juliaFrames == 1
+             then [startVal]
+             else if animType == 4
+                then map ((*) $ 2 * pi / juliaFrames) [0 .. juliaFrames - 1]
+                else [startVal, startVal + increment .. endVal]
 
-   let nameLength =
-          length . show $ ((!!) range $ length range - (min 2 $ length range))
+   let nameLength = length . show $ ((!!) range $ length range - (min 2 $ length range))
 
    mapM_
       (\frame ->
@@ -173,9 +174,7 @@ main = do
                (I.makeImageR
                   I.RPU
                   (pV, pH)
-                  (\point ->
-                     colorFunc paletteLength $ fractalFunction value point
-                  )
+                  (\point -> colorFunc paletteLength $ fractalFunction value point)
                )
       )
       [0 .. floor (if animType == 4 then juliaFrames else frames) - 1]
@@ -191,27 +190,21 @@ getAnimPrefs startVal = do
          return (startVal, endVal, (endVal - startVal) / (frames - 1), frames)
 
 mod' :: RealFloat a => a -> a -> a
-mod' x y = x - (y * (fromIntegral $ truncate (x / y)))
+mod' x y = (-) x . (*) y . fromIntegral . truncate $ x / y
 
 colorGrey :: Double -> Maybe Double -> I.Pixel I.RGB Double
-colorGrey _ Nothing = I.PixelRGB 0 0 0
-colorGrey period (Just x)
-   | val < p = I.PixelRGB (val / p) (val / p) (val / p)
-   | otherwise = I.PixelRGB ((period - val) / p)
-                            ((period - val) / p)
-                            ((period - val) / p)
- where
-  p   = period / 2
-  val = x `mod'` period
+colorGrey _      Nothing  = I.PixelRGB 0 0 0
+colorGrey period (Just x) = I.PixelRGB val val val
+   where val = (1 - cos ((x `mod'` period) / period * 6.2831853)) / 2
 
 colorHue :: Double -> Maybe Double -> I.Pixel I.RGB Double
-colorHue _ Nothing                    = I.PixelRGB 0         0         0        
-colorHue period (Just i) | x <= 1 / 6 = I.PixelRGB 1         x'        0        
-                         | x <= 1 / 3 = I.PixelRGB (2 - x')  1         0        
-                         | x <= 1 / 2 = I.PixelRGB 0         1         (x' - 2) 
-                         | x <= 2 / 3 = I.PixelRGB 0         (4 - x')  1        
-                         | x <= 5 / 6 = I.PixelRGB (x' - 4)  0         1        
-                         | otherwise  = I.PixelRGB 1         0         (6 - x')
+colorHue _ Nothing                    = I.PixelRGB 0        0        0       
+colorHue period (Just i) | x <= 1 / 6 = I.PixelRGB x'       0        1       
+                         | x <= 1 / 3 = I.PixelRGB 1        0        (2 - x')
+                         | x <= 1 / 2 = I.PixelRGB 1        (x' - 2) 0       
+                         | x <= 2 / 3 = I.PixelRGB (4 - x') 1        0       
+                         | x <= 5 / 6 = I.PixelRGB 0        1        (x' - 4)
+                         | otherwise  = I.PixelRGB 0        (6 - x') 1       
  where
   x  = (i `mod'` period) / period
   x' = 6 * x
