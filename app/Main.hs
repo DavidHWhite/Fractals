@@ -142,11 +142,7 @@ main = do
                :+ (iMax - fromIntegral r * pixelSize)
          -- Julia polar c-value animation
          (2, 4) -> \theta (r, c) ->
-            juliaPoint aaEnable
-                       pixelSize
-                       maxIterations
-                       power
-                       (mkPolar juliaMagnitude $ theta)
+            juliaPoint aaEnable pixelSize maxIterations power (mkPolar juliaMagnitude $ theta)
                $  (fromIntegral c * pixelSize + rMin)
                :+ (iMax - fromIntegral r * pixelSize)
          -- Invalid input handling
@@ -171,10 +167,9 @@ main = do
          in
             I.writeImage
                (path ++ '\\' : show frame ++ ".png")
-               (I.makeImageR
-                  I.RPU
-                  (pV, pH)
-                  (\point -> colorFunc paletteLength $ fractalFunction value point)
+               (I.makeImageR I.RPU
+                             (pV, pH)
+                             (\point -> colorFunc paletteLength $ fractalFunction value point)
                )
       )
       [0 .. floor (if animType == 4 then juliaFrames else frames) - 1]
