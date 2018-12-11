@@ -25,7 +25,7 @@ fPoint
    -> Complex Double
    -> Maybe Double
 fPoint aaEnable pixelSize maxIterations power f z0 = if not aaEnable
-   then normalize . iteratePoint $ z0
+   then normalize $ iterPoint 0 z0
    else
       (\(sum, count', isConvergent) -> if isConvergent
             then Nothing
@@ -34,7 +34,7 @@ fPoint aaEnable pixelSize maxIterations power f z0 = if not aaEnable
          $ foldl
               (\(sum, countConv, isConvergent) y -> if countConv > maxConvergent
                  then (sum, countConv, True)
-                 else case normalize . iteratePoint $ z0 + y of
+                 else case normalize . (iterPoint 0) $ z0 + y of
                     Nothing -> (sum, countConv + 1, False)
                     Just z  -> (sum + z, countConv, False)
               )
@@ -43,14 +43,9 @@ fPoint aaEnable pixelSize maxIterations power f z0 = if not aaEnable
  where
   maxMagnitude = 50
   -- Main iteration function
-  iteratePoint point' =
-     case
-           dropWhile ((< maxMagnitude) . magnitude) . take (maxIterations + 1) $ iterate
-              (f power)
-              point'
-        of
-           []       -> Convergent
-           (x : xs) -> Divergent (maxIterations - length xs) x
+  iterPoint n z | n > maxIterations          = Convergent
+                | magnitude z > maxMagnitude = Divergent n z
+                | otherwise                  = iterPoint (n + 1) (f power z)
   -- Prevents the aliasing present in generators which color based purely on escape time
   normalize Convergent      = Nothing
   normalize (Divergent 0 _) = Just 0
@@ -70,3 +65,5 @@ fPoint aaEnable pixelSize maxIterations power f z0 = if not aaEnable
      , size' :+ size'
      ]
   maxConvergent = 2
+
+-- iterPoint :: Int -> Double -> (Double -> Complex Double -> Complex Double) -> Complex Double -> Int -> PointResult

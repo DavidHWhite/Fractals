@@ -193,7 +193,7 @@ mod' x y = (-) x . (*) y . fromIntegral . truncate $ x / y
 
 colorScalarGrey :: Double -> Maybe Double -> I.Pixel I.RGB Double
 colorScalarGrey _      Nothing  = I.PixelRGB 0 0 0
-colorScalarGrey period (Just x) = I.PixelRGB val val val where val = x `mod'` period
+colorScalarGrey period (Just x) = I.PixelRGB val val val where val = (x `mod'` period) / period
 
 colorGrey :: Double -> Maybe Double -> I.Pixel I.RGB Double
 colorGrey _      Nothing  = I.PixelRGB 0 0 0
@@ -216,3 +216,6 @@ colorHue period (Just i) | x <= 1 / 6 = I.PixelRGB x'       0        1
 --                -> Maybe Double -> I.Pixel I.RGB Double
 -- colorGradient convergent _ _ Nothing = convergent
 -- colorGradient _ 
+
+-- iterate method: 3:19
+-- recursive method: 1:39
