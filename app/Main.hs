@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Main where
 
@@ -19,41 +20,44 @@ main = do
    putStrLn "   1. Mandelbrot Set"
    putStrLn "   2. Julia Set"
    putStr "Type = "
-   fracType <- fmap read getLine
+   !fracType <- fmap read getLine
    if fracType < 1 || 2 < fracType then error "Invalid fractal type" else return ()
    putStr "Pixels across = "
-   pH <- fmap read getLine
+   !pH <- fmap read getLine
    putStr "Pixels down = "
-   pV <- fmap read getLine
+   !pV <- fmap read getLine
    putStr "Center r = "
-   rC <- fmap read getLine
+   !rC <- fmap read getLine
    putStr "Center i = "
-   iC <- fmap read getLine
+   !iC <- fmap read getLine
    putStr "Horizontal range from center = "
-   distance <- fmap read getLine
+   !distance <- fmap read getLine
    putStr "Maximum iterations = "
-   maxIterations <- fmap read getLine
+   !maxIterations <- fmap read getLine
    putStr "Power = "
-   power <- fmap read getLine
+   !power <- fmap read getLine
    putStr "File path = "
-   path <- getLine
+   !path <- getLine
    putStr "Should antialiasing be used? (True/False) "
-   aaEnable <- fmap read getLine
+   !aaEnable <- fmap read getLine
    putStrLn "Select a color function:"
    putStrLn "  1. Greyscale"
-   putStrLn "  2. Full Hue"
+   putStrLn "  2. Linear Greyscale"
+   putStrLn "  3. Full Hue"
    putStr "Color function = "
-   colorFunc <- fmap (([colorGrey, colorHue] !!) . subtract 1 . read) getLine
+   !colorFunc <- fmap (([colorGrey, colorScalarGrey, colorHue] !!) . subtract 1 . read) getLine
    putStr "Color palette length = "
-   paletteLength <- fmap read getLine
+   !paletteLength <- fmap read getLine
    putStrLn "Select an animation type:"
    putStrLn "  1. Power"
    putStrLn "  2. Horizontal range"
    putStrLn "  3. Maximum Iterations"
    if fracType == 2 then putStrLn "  4. Polar C-Value" else return ()
    putStr "Type = "
-   animType <- fmap read getLine
-   if animType < 1 || 3 < animType then error "Invalid animation type" else return ()
+   !animType <- fmap read getLine
+   if animType < 1 || (3 == animType && fracType == 1) || 4 < animType
+      then error "Invalid animation type"
+      else return ()
    if animType == 3
       then
          putStrLn
@@ -71,7 +75,7 @@ main = do
             3         -> fromIntegral maxIterations
             otherwise -> 1.0
          )
-   (juliaC, juliaMagnitude, juliaFrames) <- if fracType == 2
+   !(juliaC, juliaMagnitude, juliaFrames) <- if fracType == 2
       then if animType == 4
          then do
             putStr "C-Value magnitude = "
@@ -166,7 +170,7 @@ main = do
          let value = range !! frame
          in
             I.writeImage
-               (path ++ '\\' : show frame ++ ".png")
+               (path ++ '\\' : show frame ++ ".tif")
                (I.makeImageR I.RPU
                              (pV, pH)
                              (\point -> colorFunc paletteLength $ fractalFunction value point)
@@ -176,16 +180,20 @@ main = do
 
 getAnimPrefs startVal = do
    putStr "Ending value = "
-   endVal <- fmap read getLine
+   !endVal <- fmap read getLine
    if startVal == endVal
       then return (startVal, endVal, 0.1, 1)
       else do
          putStr "Frames = "
-         frames <- fmap read getLine
+         !frames <- fmap read getLine
          return (startVal, endVal, (endVal - startVal) / (frames - 1), frames)
 
 mod' :: RealFloat a => a -> a -> a
 mod' x y = (-) x . (*) y . fromIntegral . truncate $ x / y
+
+colorScalarGrey :: Double -> Maybe Double -> I.Pixel I.RGB Double
+colorScalarGrey _      Nothing  = I.PixelRGB 0 0 0
+colorScalarGrey period (Just x) = I.PixelRGB val val val where val = x `mod'` period
 
 colorGrey :: Double -> Maybe Double -> I.Pixel I.RGB Double
 colorGrey _      Nothing  = I.PixelRGB 0 0 0
