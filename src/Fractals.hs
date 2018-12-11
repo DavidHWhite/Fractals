@@ -27,9 +27,8 @@ fPoint
 fPoint aaEnable pixelSize maxIterations power f z0 = if not aaEnable
    then normalize $ iterPoint 0 z0
    else
-      (\(sum, count', isConvergent) -> if isConvergent
-            then Nothing
-            else Just $ (sum /) $ subtract count' $ fromIntegral $ length offsets
+      (\(sum, count', isConvergent) ->
+            if isConvergent then Nothing else Just $ (sum / (numberOfSubpoints - count'))
          )
          $ foldl
               (\(sum, countConv, isConvergent) y -> if countConv > maxConvergent
@@ -39,7 +38,16 @@ fPoint aaEnable pixelSize maxIterations power f z0 = if not aaEnable
                     Just z  -> (sum + z, countConv, False)
               )
               (0, 0, False)
-              offsets
+              [ (-size') :+ (-size')
+              , (-size') :+ 0
+              , (-size') :+ size'
+              , 0 :+ (-size')
+              , 0 :+ 0
+              , 0 :+ size'
+              , size' :+ (-size')
+              , size' :+ 0
+              , size' :+ size'
+              ]
  where
   maxMagnitude = 50
   -- Main iteration function
@@ -50,20 +58,12 @@ fPoint aaEnable pixelSize maxIterations power f z0 = if not aaEnable
   normalize Convergent      = Nothing
   normalize (Divergent 0 _) = Just 0
   normalize (Divergent iterations final) =
-     Just $ ((fromIntegral iterations + 1) -) . logBase power . logBase maxMagnitude $ magnitude
-        final
-  size' = pixelSize / 3
-  offsets =
-     [ (-size') :+ (-size')
-  --   , (-size') :+ 0
-     , (-size') :+ size'
-  --   , 0 :+ (-size')
-     , 0 :+ 0
-  --   , 0 :+ size'
-     , size' :+ (-size')
-  --   , size' :+ 0
-     , size' :+ size'
-     ]
-  maxConvergent = 2
-
--- iterPoint :: Int -> Double -> (Double -> Complex Double -> Complex Double) -> Complex Double -> Int -> PointResult
+     Just
+        . (fromIntegral iterations + 1 -)
+        . logBase power
+        . logBase maxMagnitude
+        . magnitude
+        $ final
+  size'             = pixelSize / 3
+  numberOfSubpoints = 9
+  maxConvergent     = 4

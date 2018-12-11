@@ -4,6 +4,7 @@
 module Main where
 
 import           Fractals
+import           Colors
 import           Data.Complex
 import qualified Graphics.Image                as I
 import qualified Graphics.Image.ColorSpace     as I
@@ -42,12 +43,17 @@ main = do
    !aaEnable <- fmap read getLine
    putStrLn "Select a color function:"
    putStrLn "  1. Greyscale"
-   putStrLn "  2. Linear Greyscale"
-   putStrLn "  3. Full Hue"
+   putStrLn "  2. Full Hue"
+   putStrLn "  3. Linear Greyscale"
    putStr "Color function = "
-   !colorFunc <- fmap (([colorGrey, colorScalarGrey, colorHue] !!) . subtract 1 . read) getLine
-   putStr "Color palette length = "
-   !paletteLength <- fmap read getLine
+   !colorFunc' <- fmap read getLine
+   !colorFunc <- if colorFunc' /= 3
+      then do
+         putStr "Color palette length = "
+         fmap (([colorGrey, colorHue] !! (colorFunc' - 1)). read) getLine
+      else do
+         putStr "Sigmoid midpoint = "
+         fmap (colorSigmoidGrey . read) getLine
    putStrLn "Select an animation type:"
    putStrLn "  1. Power"
    putStrLn "  2. Horizontal range"
@@ -173,7 +179,7 @@ main = do
                (path ++ '\\' : show frame ++ ".tif")
                (I.makeImageR I.RPU
                              (pV, pH)
-                             (\point -> colorFunc paletteLength $ fractalFunction value point)
+                             (\point -> colorFunc $ fractalFunction value point)
                )
       )
       [0 .. floor (if animType == 4 then juliaFrames else frames) - 1]
@@ -187,35 +193,3 @@ getAnimPrefs startVal = do
          putStr "Frames = "
          !frames <- fmap read getLine
          return (startVal, endVal, (endVal - startVal) / (frames - 1), frames)
-
-mod' :: RealFloat a => a -> a -> a
-mod' x y = (-) x . (*) y . fromIntegral . truncate $ x / y
-
-colorScalarGrey :: Double -> Maybe Double -> I.Pixel I.RGB Double
-colorScalarGrey _      Nothing  = I.PixelRGB 0 0 0
-colorScalarGrey period (Just x) = I.PixelRGB val val val where val = (x `mod'` period) / period
-
-colorGrey :: Double -> Maybe Double -> I.Pixel I.RGB Double
-colorGrey _      Nothing  = I.PixelRGB 0 0 0
-colorGrey period (Just x) = I.PixelRGB val val val
-   where val = (1 - cos ((x `mod'` period) / period * 6.2831853)) / 2
-
-colorHue :: Double -> Maybe Double -> I.Pixel I.RGB Double
-colorHue _ Nothing                    = I.PixelRGB 0        0        0       
-colorHue period (Just i) | x <= 1 / 6 = I.PixelRGB x'       0        1       
-                         | x <= 1 / 3 = I.PixelRGB 1        0        (2 - x')
-                         | x <= 1 / 2 = I.PixelRGB 1        (x' - 2) 0       
-                         | x <= 2 / 3 = I.PixelRGB (4 - x') 1        0       
-                         | x <= 5 / 6 = I.PixelRGB 0        1        (x' - 4)
-                         | otherwise  = I.PixelRGB 0        (6 - x') 1       
- where
-  x  = (i `mod'` period) / period
-  x' = 6 * x
-
--- colorGradient :: I.Pixel I.RGB Double -> [I.Pixel I.RGB Double] -> Double
---                -> Maybe Double -> I.Pixel I.RGB Double
--- colorGradient convergent _ _ Nothing = convergent
--- colorGradient _ 
-
--- iterate method: 3:19
--- recursive method: 1:39
