@@ -17,6 +17,7 @@ main = do
    -- Fixes some issues with output text not displaying in the console
    hSetBuffering stdout NoBuffering
 
+   -- Each input value is marked strict with ! so that invalid inputs are detected immediately
    putStrLn "Select a fractal to generate:"
    putStrLn "   1. Mandelbrot Set"
    putStrLn "   2. Julia Set"
@@ -47,13 +48,17 @@ main = do
    putStrLn "  3. Linear Greyscale"
    putStr "Color function = "
    !colorFunc' <- fmap read getLine
+   if colorFunc' < 1 || 3 < colorFunc' then error "Invalid color function" else return ()
    !colorFunc <- if colorFunc' /= 3
       then do
          putStr "Color palette length = "
-         fmap (([colorGrey, colorHue] !! (colorFunc' - 1)). read) getLine
+         fmap (([colorGrey, colorHue] !! (colorFunc' - 1)) . read) getLine
       else do
          putStr "Sigmoid midpoint = "
-         fmap (colorSigmoidGrey . read) getLine
+         !sigMidpoint <- fmap read getLine
+         putStr "Sigmoid power = "
+         !sigPower <- fmap read getLine
+         return $ colorSigmoidGrey sigPower sigMidpoint
    putStrLn "Select an animation type:"
    putStrLn "  1. Power"
    putStrLn "  2. Horizontal range"
@@ -63,13 +68,6 @@ main = do
    !animType <- fmap read getLine
    if animType < 1 || (3 == animType && fracType == 1) || 4 < animType
       then error "Invalid animation type"
-      else return ()
-   if animType == 3
-      then
-         putStrLn
-         $  "Be aware that a frame's maximum iteration count must be an "
-         ++ "integral value, potentially causing unexpected behavior in "
-         ++ "your animation if your frame count is > (maxValue - minValue + 1)."
       else return ()
 
    (startVal, endVal, increment, frames) <- if fracType == 2 && animType == 4
@@ -174,13 +172,9 @@ main = do
    mapM_
       (\frame ->
          let value = range !! frame
-         in
-            I.writeImage
-               (path ++ '\\' : show frame ++ ".tif")
-               (I.makeImageR I.RPU
-                             (pV, pH)
-                             (\point -> colorFunc $ fractalFunction value point)
-               )
+         in  I.writeImage
+                (path ++ '\\' : show frame ++ ".png")
+                (I.makeImageR I.RPU (pV, pH) (\point -> colorFunc $ fractalFunction value point))
       )
       [0 .. floor (if animType == 4 then juliaFrames else frames) - 1]
 

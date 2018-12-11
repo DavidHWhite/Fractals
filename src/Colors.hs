@@ -29,11 +29,12 @@ colorHue period (Just i) | x <= 1 / 6 = I.PixelRGB x'       0        1
   x  = (i `mod'` period) / period
   x' = 6 * x
 
-colorSigmoidGrey :: Double -> Maybe Double -> I.Pixel I.RGB Double
-colorSigmoidGrey _      Nothing  = I.PixelRGB 0 0 0
-colorSigmoidGrey midpoint (Just x) = I.PixelRGB val val val
-  where val = (1 /) $ (1 +) $ (3.25 **) $ (midpoint - x) / (midpoint / 4)
-   
+colorSigmoidGrey :: Double -> Double -> Maybe Double -> I.Pixel I.RGB Double
+colorSigmoidGrey _     _        Nothing  = I.PixelRGB 0 0 0
+colorSigmoidGrey power midpoint (Just x) = I.PixelRGB val val val
+   where val = (1 /) $ (1 +) $ (power **) $ (midpoint - x) / (midpoint / 4)
+
+
 -- colorGradient :: I.Pixel I.RGB Double -> [I.Pixel I.RGB Double] -> Double
 --                -> Maybe Double -> I.Pixel I.RGB Double
 -- colorGradient convergent _ _ Nothing = convergent
