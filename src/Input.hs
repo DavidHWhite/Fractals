@@ -10,6 +10,7 @@ module Input
    , Animation(..)
    , processArgs
    , pPrintOptions
+   , defaultOptions
    )
 where
 
@@ -40,10 +41,10 @@ data Color
    | Gradient [I.Pixel I.RGB Double]
    deriving (Show)
 data Animation
-   = Power Double Int Int
+   = Power Double
    | Zoom Double Int
-   | Iterations Int Int
-   | Theta Double Int
+   | Iterations Int
+   | Theta Double
    | NoAnimation
    deriving (Show)
 
@@ -60,6 +61,7 @@ data Options = Options
    , animation       :: Animation
    , cvalue          :: Complex Double
    , setColor        :: I.Pixel I.RGB Double
+   , frames          :: Int
    } deriving (Show)
 
 defaultOptions = Options Mandelbrot
@@ -74,6 +76,7 @@ defaultOptions = Options Mandelbrot
                          NoAnimation
                          (0 :+ 0)
                          (I.PixelRGB 0 0 0)
+                         100
 
 processArgs :: [String] -> Options
 processArgs = getOptionsFromArgs . separateArgs . normalizeArgs
@@ -112,7 +115,7 @@ colorFromString s =
             []
             s
       of
-         (r : g : b : []) -> if r < 1 && g < 1 && b < 1
+         (r : g : b : []) -> if r <= 1 && g <= 1 && b <= 1
             then I.PixelRGB r g b
             else error "All color values must be on the interval [0,255]"
          otherwise -> error "Invalid color for gradient"
@@ -180,17 +183,18 @@ arguments
        )
      , ( "-an"
        , \(x : xs, opt) -> case (take 3 x) : xs of
-          ("pow" : fn : fr : fi : []) -> opt { animation = Power (read fn) (read fr) (read fi) }
-          ("zoo"      : fn : fr : []) -> opt { animation = Zoom (read fn) (read fr) }
-          ("ite"      : fn : fr : []) -> opt { animation = Iterations (read fn) (read fr) }
-          ("the"      : fn : fr : []) -> opt { animation = Theta (read fn) (read fr) }
-          ("non"                : []) -> opt { animation = NoAnimation }
+          ("pow" : fn : fr : []) -> opt { animation = Power (read fn), frames = (read fr) }
+          ("zoo" : fn : fr : fi : []) ->
+             opt { animation = Zoom (read fn) (read fi), frames = (read fr) }
+          ("ite" : fn : fr : []) -> opt { animation = Iterations (read fn), frames = (read fr) }
+          ("the" : fn : fr : []) -> opt { animation = Theta (read fn), frames = (read fr) }
+          ("non"           : []) -> opt { animation = NoAnimation }
           otherwise -> error $ "Invalid arguments for -animation: \"" ++ (show (x : xs)) ++ "\""
        )
      , ( "-cv"
        , \(x : xs, opt) -> case (take 3 x) : xs of
           ("rec" : r : i : []) -> opt { cvalue = read r :+ read i }
-          ("pol" : m : p : []) -> opt { cvalue = mkPolar (read m) (read p) }
+          ("pol" : m : p : []) -> opt { cvalue = mkPolar (read m) ((/ 180) . (* pi) $ read p) }
           otherwise -> error $ "Invalid arguments for -cvalue: \"" ++ (show (x : xs)) ++ "\""
        )
      , ( "-se"
@@ -202,15 +206,41 @@ arguments
 
 pPrintOptions :: Options -> String
 pPrintOptions options =
-   "Fractal Type:  " ++ (show $ fractalType options) ++ '\n' :
-   "Resolution:    " ++ (show $ resolution options) ++ '\n' :
-   "Center:        " ++ (show $ center options) ++ '\n' :
-   "Range:         " ++ (show $ range options) ++ '\n' :
-   "Iterations:    " ++ (show $ iterations options) ++ '\n' :
-   "Power:         " ++ (show $ power options) ++ '\n' :
-   "AA:            " ++ (show $ aa options) ++ '\n' :
-   "Normalization: " ++ (show $ normalization options) ++ '\n' :
-   "Color:         " ++ (show $ color options) ++ '\n' :
-   "Animation:     " ++ (show $ animation options) ++ '\n' :
-   "C-Value:       " ++ (show $ cvalue options) ++ '\n' :
-   "Set Color      " ++ (show $ setColor options)
+   "Fractal Type:    "
+      ++ (show $ fractalType options)
+      ++ '\n'
+      :  "Resolution:      "
+      ++ (show $ resolution options)
+      ++ '\n'
+      :  "Center:          "
+      ++ (show $ center options)
+      ++ '\n'
+      :  "Range:           "
+      ++ (show $ range options)
+      ++ '\n'
+      :  "Iterations:      "
+      ++ (show $ iterations options)
+      ++ '\n'
+      :  "Power:           "
+      ++ (show $ power options)
+      ++ '\n'
+      :  "AA:              "
+      ++ (show $ aa options)
+      ++ '\n'
+      :  "Normalization:   "
+      ++ (show $ normalization options)
+      ++ '\n'
+      :  "Color:           "
+      ++ (show $ color options)
+      ++ '\n'
+      :  "Animation:       "
+      ++ (show $ animation options)
+      ++ '\n'
+      :  "C-Value:         "
+      ++ (show $ cvalue options)
+      ++ '\n'
+      :  "Set Color:       "
+      ++ (show $ setColor options)
+      ++ '\n'
+      :  "Frames:          "
+      ++ (show $ frames options)

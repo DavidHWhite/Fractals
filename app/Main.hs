@@ -17,14 +17,17 @@ main = do
 
    -- TODO add help
 
-   options@(Options fractalType (numRows, numColumns) center range iterations power aa normalization color animation cvalue setColor) <-
+   options@(Options fractalType (numRows, numColumns) center range iterations power aa normalization color animation cvalue setColor framesIn) <-
       fmap processArgs getArgs
+   let frames = case animation of
+          NoAnimation -> 1
+          otherwise   -> fromIntegral framesIn
    putStrLn $ pPrintOptions options
    let colorFunc =
           case color of
                 Greyscale         -> colorGrey setColor
                 Hue               -> colorHue setColor
-                (Gradient colors) -> colorGradient setColor colors
+                (Gradient colors) -> colorGrad setColor colors
              . fmap
                   (case normalization of
                      Linear                 -> (normLinear iterations)
@@ -33,33 +36,36 @@ main = do
                      (Sine     period     ) -> normSine period
                   )
 
-   putStrLn "Nonsense!"
+   let
+      animRange = map
+         ( (case animation of
+              (Power final     ) -> interpolate power final
+              (Zoom final _    ) -> ((exp $ (log (final / range)) / (frames - 1)) **)
+              (Iterations final) -> interpolate (fromIntegral iterations) (fromIntegral final)
+              (Theta final)      -> interpolate (phase cvalue) final
+              NoAnimation        -> id
+           )
+         . (/ (frames - 1))
+         )
+         [0 .. frames - 1]
 
-   -- putStrLn "Select an animation type:"
-   -- putStrLn "  1. Power"
-   -- putStrLn "  2. Zoom"
-   -- putStrLn "  3. Maximum Iterations"
-   -- if fracType == 2 then putStrLn "  4. Polar C-Value" else return ()
-   -- putStr "Type = "
-   -- !animType <- fmap read getLine
-   -- if animType < 1 || (3 == animType && fracType == 1) || 4 < animType
-   --    then error "Invalid animation type"
-   --    else return ()
+   let zoomIterRange = case animation of
+          (Zoom _ finalIter) -> map
+             (round . (interpolate (fromIntegral iterations) (fromIntegral finalIter)) . (/ frames))
+             [0 .. frames - 1]
+          otherwise ->
+             error "Why is zoomIterRange being used when the selected animation isn't Zoom?"
 
-   -- (startVal, endVal, increment, frames) <- if fracType == 2 && animType == 4
-   --    then return (0, 0, 0, 0)
-   --    else getAnimPrefs
-   --       (case animType of
-   --          1         -> power
-   --          2         -> distance
-   --          3         -> fromIntegral maxIterations
-   --          otherwise -> 1.0
-   --       )
-   -- endIterations <- if animType == 2
-   --    then do
-   --       putStr "Final iteration count = "
-   --       fmap read getLine
-   --    else return 0
+   -- let range = if animType == 2
+   --        then [0 .. frames - 1]
+   --        else if frames == 1 || juliaFrames == 1
+   --           then [startVal]
+   --           else if animType == 4
+   --              then map ((*) $ 2 * pi / juliaFrames) [0 .. juliaFrames - 1]
+   --              else [startVal, startVal + increment .. endVal]
+
+
+
    -- !(juliaC, juliaMagnitude, juliaFrames) <- if fracType == 2
    --    then if animType == 4
    --       then do
@@ -153,14 +159,6 @@ main = do
    --       -- Invalid input handling
    --       otherwise -> error "Invalid fractal type or animation type."
 
-   -- let range = if animType == 2
-   --        then [0 .. frames - 1]
-   --        else if frames == 1 || juliaFrames == 1
-   --           then [startVal]
-   --           else if animType == 4
-   --              then map ((*) $ 2 * pi / juliaFrames) [0 .. juliaFrames - 1]
-   --              else [startVal, startVal + increment .. endVal]
-
    -- let nameLength = length . show $ ((!!) range $ length range - (min 2 $ length range))
 
    -- mapM_
@@ -172,12 +170,9 @@ main = do
    --    )
    --    [0 .. floor (if animType == 4 then juliaFrames else frames) - 1]
 
-getAnimPrefs startVal = do
-   putStr "Ending value = "
-   !endVal <- fmap read getLine
-   if startVal == endVal
-      then return (startVal, endVal, 0.1, 1)
-      else do
-         putStr "Frames = "
-         !frames <- fmap read getLine
-         return (startVal, endVal, (endVal - startVal) / (frames - 1), frames)
+   -- *************************************************
+   putStrLn "Nonsense!"
+   -- *************************************************
+
+interpolate :: Double -> Double -> Double -> Double
+interpolate i f p = (i +) $ (* p) $ (f - i)
