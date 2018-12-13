@@ -2,9 +2,9 @@
 {-# LANGUAGE EmptyCase #-}
 
 module Input
-   ( Options
+   ( Options (..)
    , processArgs
-   )   
+   )
 where
 
 import           Data.Complex
@@ -24,8 +24,8 @@ data AA
 data Normalization
    = Linear
    | Sigmoid Double Double
-   | Periodic Int
-   | Sine Int
+   | Periodic Double
+   | Sine Double
    deriving (Show)
 data Color
    = Greyscale
@@ -57,20 +57,6 @@ data Options = Options
 defaultOptions =
    Options Mandelbrot (500, 500) (0 :+ 0) 2 500 2 AAEnabled Linear Hue NoAnimation (0 :+ 0)
 
-main :: IO ()
-main = do
-   args <- fmap (separateArgs . map (take 3 . map toLower)) getArgs
-   let options = foldl
-          (\opt (arg : subargs) ->
-             let func = lookup arg arguments
-             in  case fmap (\f -> f (subargs, opt)) func of
-                    Just x    -> x
-                    otherwise -> error ""
-          )
-          defaultOptions
-          args
-   print options
-
 processArgs :: [String] -> Options
 processArgs = getOptionsFromArgs . separateArgs . normalizeArgs
 
@@ -92,13 +78,13 @@ separateArgs (x : xs) = case lookup x arguments of
 
 getOptionsFromArgs :: [[String]] -> Options
 getOptionsFromArgs = foldl
-      (\opt (arg : subargs) ->
-         let func = lookup arg arguments
-         in  case fmap (\f -> f (subargs, opt)) func of
-               Just x    -> x
-               otherwise -> error ""
-      )
-      defaultOptions
+   (\opt (arg : subargs) ->
+      let func = lookup arg arguments
+      in  case fmap (\f -> f (subargs, opt)) func of
+             Just x    -> x
+             otherwise -> error ""
+   )
+   defaultOptions
 
 -- Array of all command line arguments and functions to interpret their subarguments
 -- It is assumed that arguments have been converted to lowercase and shortened to 3 characters

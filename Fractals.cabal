@@ -28,6 +28,7 @@ library
   exposed-modules:
       Fractals
     , Colors
+    , Input
   other-modules:
       Paths_Fractals
   hs-source-dirs:
