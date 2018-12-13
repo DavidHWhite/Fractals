@@ -14,19 +14,27 @@ import           System.Environment
 
 main :: IO ()
 main = do
-   
+
    -- TODO add help
-   args <- getArgs
-   print args
-   putStrLn ""
-   options@(Options fractalType (numRows, numColumns) center
-                    range iterations power aa normalization
-                    color animation cvalue)
-                        <- fmap processArgs getArgs
+
+   options@(Options fractalType (numRows, numColumns) center range iterations power aa normalization color animation cvalue setColor) <-
+      fmap processArgs getArgs
    putStrLn $ pPrintOptions options
-   -- let colorFunc =
-   --    case color of
-   --       Greyscale -> col
+   let colorFunc =
+          case color of
+                Greyscale         -> colorGrey setColor
+                Hue               -> colorHue setColor
+                (Gradient colors) -> colorGradient setColor colors
+             . fmap
+                  (case normalization of
+                     Linear                 -> (normLinear iterations)
+                     (Sigmoid center power) -> normSigmoid center power
+                     (Periodic period     ) -> normPeriodic period
+                     (Sine     period     ) -> normSine period
+                  )
+
+   putStrLn "Nonsense!"
+
    -- putStrLn "Select an animation type:"
    -- putStrLn "  1. Power"
    -- putStrLn "  2. Zoom"

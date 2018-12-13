@@ -33,9 +33,9 @@ normSine period = (/ 2) . (1 -) . cos . (* 6.2831853) . (/ period) . (flip mod' 
 
 -- Color Functions
 
-colorGrey :: Maybe Double -> I.Pixel I.RGB Double
-colorGrey Nothing    = I.PixelRGB 0 0 0
-colorGrey (Just val) = I.PixelRGB val val val
+colorGrey :: I.Pixel I.RGB Double ->  Maybe Double -> I.Pixel I.RGB Double
+colorGrey setColor Nothing    = setColor
+colorGrey _        (Just val) = I.PixelRGB val val val
 
 colorGradient
    :: I.Pixel I.RGB Double -> [I.Pixel I.RGB Double] -> Maybe Double -> I.Pixel I.RGB Double
@@ -49,12 +49,12 @@ colorGradient _           colors (Just x) = interColors (colors !! section) (col
   interColors (I.PixelRGB iR iG iB) (I.PixelRGB fR fG fB) =
      I.PixelRGB (inter iR fR) (inter iG fG) (inter iB fB)
 
-colorHue :: Maybe Double -> I.Pixel I.RGB Double
-colorHue Nothing              = I.PixelRGB 0        0        0       
-colorHue (Just x) | x' <= 1   = I.PixelRGB x'       0        1       
-                  | x' <= 2   = I.PixelRGB 1        0        (2 - x')
-                  | x' <= 3   = I.PixelRGB 1        (x' - 2) 0       
-                  | x' <= 4   = I.PixelRGB (4 - x') 1        0       
-                  | x' <= 5   = I.PixelRGB 0        1        (x' - 4)
-                  | otherwise = I.PixelRGB 0        (6 - x') 1       
+colorHue :: I.Pixel I.RGB Double -> Maybe Double -> I.Pixel I.RGB Double
+colorHue setColor Nothing              = setColor       
+colorHue _        (Just x) | x' <= 1   = I.PixelRGB x'       0        1       
+                           | x' <= 2   = I.PixelRGB 1        0        (2 - x')
+                           | x' <= 3   = I.PixelRGB 1        (x' - 2) 0       
+                           | x' <= 4   = I.PixelRGB (4 - x') 1        0       
+                           | x' <= 5   = I.PixelRGB 0        1        (x' - 4)
+                           | otherwise = I.PixelRGB 0        (6 - x') 1       
   where x' = 6 * x
