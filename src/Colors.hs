@@ -1,10 +1,12 @@
 module Colors
-   ( colorGrey
-   , colorHue
-   , normLinear
+   ( normLinear
    , normSigmoid
    , normPeriodic
    , normSine
+   , colorGrey
+   , colorHue
+   , colorGradient
+   -- , mod'
    )
 where
 
@@ -29,12 +31,23 @@ normSine :: Double -> Double -> Double
 normSine period = (/ 2) . (1 -) . cos . (* 6.2831853) . (/ period) . (flip mod' period)
 
 
-
-
+-- Color Functions
 
 colorGrey :: Maybe Double -> I.Pixel I.RGB Double
 colorGrey Nothing    = I.PixelRGB 0 0 0
 colorGrey (Just val) = I.PixelRGB val val val
+
+colorGradient
+   :: I.Pixel I.RGB Double -> [I.Pixel I.RGB Double] -> Maybe Double -> I.Pixel I.RGB Double
+colorGradient convergentC _      Nothing  = convergentC
+colorGradient _           colors (Just x) = interColors (colors !! section) (colors !! section + 1)
+ where
+  count   = fromIntegral $ (subtract 1) $ length colors
+  section = truncate $ x * count
+  p       = (* count) $ (x `mod'`) $ 1 / count
+  inter i f = (i +) $ (* p) $ (f - i)
+  interColors (I.PixelRGB iR iG iB) (I.PixelRGB fR fG fB) =
+     I.PixelRGB (inter iR fR) (inter iG fG) (inter iB fB)
 
 colorHue :: Maybe Double -> I.Pixel I.RGB Double
 colorHue Nothing              = I.PixelRGB 0        0        0       
@@ -44,11 +57,4 @@ colorHue (Just x) | x' <= 1   = I.PixelRGB x'       0        1
                   | x' <= 4   = I.PixelRGB (4 - x') 1        0       
                   | x' <= 5   = I.PixelRGB 0        1        (x' - 4)
                   | otherwise = I.PixelRGB 0        (6 - x') 1       
- where
-  x' = 6 * x
-
-
--- colorGradient :: I.Pixel I.RGB Double -> [I.Pixel I.RGB Double] -> Double
---                -> Maybe Double -> I.Pixel I.RGB Double
--- colorGradient convergent _ _ Nothing = convergent
--- colorGradient _ 
+  where x' = 6 * x

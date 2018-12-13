@@ -13,10 +13,17 @@ import           Data.Word
 import           System.Environment
 
 main :: IO ()
-main = undefined
-   -- Options fractalType resolution center range iterations power aa normalization color animation cvalue <-
-   --    fmap processArgs getArgs
-
+main = do
+   
+   -- TODO add help
+   args <- getArgs
+   print args
+   putStrLn ""
+   options@(Options fractalType (numRows, numColumns) center
+                    range iterations power aa normalization
+                    color animation cvalue)
+                        <- fmap processArgs getArgs
+   putStrLn $ pPrintOptions options
    -- let colorFunc =
    --    case color of
    --       Greyscale -> col

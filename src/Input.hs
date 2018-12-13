@@ -1,9 +1,10 @@
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE MultiWayIf #-}
 
 module Input
-   ( Options (..)
+   ( Options(..)
    , processArgs
+   , pPrintOptions
    )
 where
 
@@ -12,6 +13,7 @@ import           System.IO
 import           Data.Word
 import           System.Environment
 import           Data.Char
+import qualified Graphics.Image                as I
 
 data FractalType
    = Mandelbrot
@@ -30,7 +32,7 @@ data Normalization
 data Color
    = Greyscale
    | Hue
-   -- TODO | Gradient
+   | Gradient [I.Pixel I.RGB Double]
    deriving (Show)
 data Animation
    = Power Double Int Int
@@ -41,17 +43,17 @@ data Animation
    deriving (Show)
 
 data Options = Options
-   { fractalType :: FractalType
-   , resolution :: (Int, Int)
-   , center :: Complex Double
-   , range :: Double
-   , iterations :: Int
-   , power :: Double
-   , aa :: AA
-   , normalization :: Normalization
-   , color :: Color
-   , animation :: Animation
-   , cvalue :: Complex Double
+   { fractalType     :: FractalType
+   , resolution      :: (Int, Int)
+   , center          :: Complex Double
+   , range           :: Double
+   , iterations      :: Int
+   , power           :: Double
+   , aa              :: AA
+   , normalization   :: Normalization
+   , color           :: Color
+   , animation       :: Animation
+   , cvalue          :: Complex Double
    } deriving (Show)
 
 defaultOptions =
@@ -61,15 +63,15 @@ processArgs :: [String] -> Options
 processArgs = getOptionsFromArgs . separateArgs . normalizeArgs
 
 normalizeArgs :: [String] -> [String]
-normalizeArgs = map (take 3 . map toLower)
+normalizeArgs = map $ map toLower
 
 separateArgs :: [String] -> [[String]]
 separateArgs []       = []
-separateArgs (x : xs) = case lookup x arguments of
-   Nothing -> error "Invalid arguments"
+separateArgs (x : xs) = case lookup (take 3 x) arguments of
+   Nothing -> error $ "Invalid argument \"" ++ x ++ "\""
    otherwise ->
       let (subArgs, args) = span
-             (\x -> case lookup x arguments of
+             (\y -> case lookup (take 3 y) arguments of
                 Nothing   -> True
                 otherwise -> False
              )
@@ -79,7 +81,7 @@ separateArgs (x : xs) = case lookup x arguments of
 getOptionsFromArgs :: [[String]] -> Options
 getOptionsFromArgs = foldl
    (\opt (arg : subargs) ->
-      let func = lookup arg arguments
+      let func = lookup (take 3 arg) arguments
       in  case fmap (\f -> f (subargs, opt)) func of
              Just x    -> x
              otherwise -> error ""
@@ -91,71 +93,123 @@ getOptionsFromArgs = foldl
 arguments :: [(String, (([String], Options) -> Options))]
 arguments =
    [ ( "-fr"
-     , \case
-        ("man" : [], opt) -> opt { fractalType = Mandelbrot }
-        ("jul" : [], opt) -> opt { fractalType = Julia }
-        otherwise         -> error "Invalid arguments for -fractalType"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("man" : []) -> opt { fractalType = Mandelbrot }
+        ("jul" : []) -> opt { fractalType = Julia }
+        otherwise    -> error $ "Invalid arguments for -fractalType: \"" ++ (show (x : xs)) ++ "\""
      )
    , ( "-re"
      , \case
         (r : c : [], opt) -> opt { resolution = (read r, read c) }
-        otherwise         -> error "Invalid arguments for -resolution"
+        x                 -> error $ "Invalid arguments for -resolution: \"" ++ (show x) ++ "\""
      )
    , ( "-ce"
-     , \case
-        ("rec" : r : i : [], opt) -> opt { center = read r :+ read i }
-        ("pol" : m : p : [], opt) -> opt { center = mkPolar (read m) (read p) }
-        otherwise                 -> error "Invalid arguments for -center"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("rec" : r : i : []) -> opt { center = read r :+ read i }
+        ("pol" : m : p : []) -> opt { center = mkPolar (read m) (read p) }
+        otherwise -> error $ "Invalid arguments for -center: \"" ++ (show (x : xs)) ++ "\""
      )
    , ( "-ra"
      , \case
         (n : [], opt) -> opt { range = read n }
-        otherwise     -> error "Invalid arguments for -range"
+        x             -> error $ "Invalid arguments for -range: \"" ++ (show x) ++ "\""
      )
    , ( "-it"
      , \case
         (n : [], opt) -> opt { iterations = read n }
-        otherwise     -> error "Invalid arguments for -iterations"
+        x             -> error $ "Invalid arguments for -iterations: \"" ++ (show x) ++ "\""
      )
    , ( "-po"
      , \case
         (n : [], opt) -> opt { power = read n }
-        otherwise     -> error "Invalid arguments for -power"
+        x             -> error $ "Invalid arguments for -power: \"" ++ (show x) ++ "\""
      )
    , ( "-aa"
-     , \case
-        ("ena" : [], opt) -> opt { aa = AAEnabled }
-        ("dis" : [], opt) -> opt { aa = AADisabled }
-        otherwise         -> error "Invalid arguments for -aa"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("ena" : []) -> opt { aa = AAEnabled }
+        ("dis" : []) -> opt { aa = AADisabled }
+        otherwise    -> error $ "Invalid arguments for -aa: \"" ++ (show (x : xs)) ++ "\""
      )
    , ( "-no"
-     , \case
-        ("lin"         : [], opt) -> opt { normalization = Linear }
-        ("sig"     : c : [], opt) -> opt { normalization = Sigmoid (read c) 2.5 }
-        ("sig" : c : p : [], opt) -> opt { normalization = Sigmoid (read c) (read p) }
-        ("per"     : p : [], opt) -> opt { normalization = Periodic (read p) }
-        ("sin"     : p : [], opt) -> opt { normalization = Sine (read p) }
-        otherwise                 -> error "Invalid arguments for -normalization"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("lin"         : []) -> opt { normalization = Linear }
+        ("sig"     : c : []) -> opt { normalization = Sigmoid (read c) 2.5 }
+        ("sig" : c : p : []) -> opt { normalization = Sigmoid (read c) (read p) }
+        ("per"     : p : []) -> opt { normalization = Periodic (read p) }
+        ("sin"     : p : []) -> opt { normalization = Sine (read p) }
+        otherwise -> error $ "Invalid arguments for -normalization: \"" ++ (show (x : xs)) ++ "\""
      )
    , ( "-co"
-     , \case
-        ("gre" : [], opt) -> opt { color = Greyscale }
-        ("hue" : [], opt) -> opt { color = Hue }
-        otherwise         -> error "Invalid arguments for -color"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("gre" : []  ) -> opt { color = Greyscale }
+        ("hue" : []  ) -> opt { color = Hue }
+        ("gra" : args) -> if length args < 2
+           then error "Insufficient colors for a gradient to be formed"
+           else opt
+              { color = (Gradient $ map
+                           (\s ->
+                              case
+                                    map ((/ 255) . read) . words $ foldr
+                                       (\char acc -> (if char == ',' then ' ' else char) : acc)
+                                       []
+                                       s
+                                 of
+                                    (r : g : b : []) -> I.PixelRGB r g b
+                                    otherwise        -> error "Invalid color for gradient"
+                           )
+                           args
+                        )
+              }
+        otherwise -> error $ "Invalid arguments for -color: \"" ++ (show (x : xs)) ++ "\""
      )
    , ( "-an"
-     , \case
-        ("pow" : fn : fr : fi : [], opt) -> opt { animation = Power (read fn) (read fr) (read fi) }
-        ("zoo"      : fn : fr : [], opt) -> opt { animation = Zoom (read fn) (read fr) }
-        ("ite"      : fn : fr : [], opt) -> opt { animation = Iterations (read fn) (read fr) }
-        ("the"      : fn : fr : [], opt) -> opt { animation = Theta (read fn) (read fr) }
-        ("non"                : [], opt) -> opt { animation = NoAnimation }
-        otherwise                        -> error "Invalid arguments for -animation"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("pow" : fn : fr : fi : []) -> opt { animation = Power (read fn) (read fr) (read fi) }
+        ("zoo"      : fn : fr : []) -> opt { animation = Zoom (read fn) (read fr) }
+        ("ite"      : fn : fr : []) -> opt { animation = Iterations (read fn) (read fr) }
+        ("the"      : fn : fr : []) -> opt { animation = Theta (read fn) (read fr) }
+        ("non"                : []) -> opt { animation = NoAnimation }
+        otherwise -> error $ "Invalid arguments for -animation: \"" ++ (show (x : xs)) ++ "\""
      )
    , ( "-cv"
-     , \case
-        ("rec" : r : i : [], opt) -> opt { cvalue = read r :+ read i }
-        ("pol" : m : p : [], opt) -> opt { cvalue = mkPolar (read m) (read p) }
-        otherwise                 -> error "Invalid arguments for -cvalue"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("rec" : r : i : []) -> opt { cvalue = read r :+ read i }
+        ("pol" : m : p : []) -> opt { cvalue = mkPolar (read m) (read p) }
+        otherwise -> error $ "Invalid arguments for -cvalue: \"" ++ (show (x : xs)) ++ "\""
      )
    ]
+
+pPrintOptions :: Options -> String
+pPrintOptions options =
+   "FractalType:   "
+      ++ (show $ fractalType options)
+      ++ '\n'
+      :  "Resolution:    "
+      ++ (show $ resolution options)
+      ++ '\n'
+      :  "Center:        "
+      ++ (show $ center options)
+      ++ '\n'
+      :  "Range:         "
+      ++ (show $ range options)
+      ++ '\n'
+      :  "Iterations:    "
+      ++ (show $ iterations options)
+      ++ '\n'
+      :  "Power:         "
+      ++ (show $ power options)
+      ++ '\n'
+      :  "AA:            "
+      ++ (show $ aa options)
+      ++ '\n'
+      :  "Normalization: "
+      ++ (show $ normalization options)
+      ++ '\n'
+      :  "Color:         "
+      ++ (show $ color options)
+      ++ '\n'
+      :  "Animation:     "
+      ++ (show $ animation options)
+      ++ '\n'
+      :  "Cvalue:        "
+      ++ (show $ cvalue options)
