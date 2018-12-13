@@ -7,14 +7,13 @@ import           Fractals
 import           Colors
 import           Data.Complex
 import qualified Graphics.Image                as I
-import qualified Graphics.Image.ColorSpace     as I
-import qualified Graphics.Image.Types          as I
 import           System.IO
 import           Data.Word
+import           System.Environment
 
 main :: IO ()
 main = do
-   -- Fixes some issues with output text not displaying in the console
+   -- Fixes some issues with output text not displaying in the console in the right order
    hSetBuffering stdout NoBuffering
 
    -- Each input value is marked strict with ! so that invalid inputs are detected immediately
@@ -61,7 +60,7 @@ main = do
          return $ colorSigmoidGrey sigPower sigMidpoint
    putStrLn "Select an animation type:"
    putStrLn "  1. Power"
-   putStrLn "  2. Horizontal range"
+   putStrLn "  2. Zoom"
    putStrLn "  3. Maximum Iterations"
    if fracType == 2 then putStrLn "  4. Polar C-Value" else return ()
    putStr "Type = "
@@ -79,6 +78,11 @@ main = do
             3         -> fromIntegral maxIterations
             otherwise -> 1.0
          )
+   endIterations <- if animType == 2
+      then do
+         putStr "Final iteration count = "
+         fmap read getLine
+      else return 0
    !(juliaC, juliaMagnitude, juliaFrames) <- if fracType == 2
       then if animType == 4
          then do
@@ -110,11 +114,16 @@ main = do
                    )
                >>= \x -> return (x, 0, 0)
       else return (0, 0, 0)
-   let pixelSize = (2 * distance) / (fromIntegral $ pH - 1)
-   let rMin      = rC - distance
+   let pixelSize          = (2 * distance) / (fromIntegral $ pH - 1)
+   let rMin               = rC - distance
    let iMax = iC + (pixelSize * (fromIntegral (pV - 1) / 2))
-   let halfV     = 0.5 * fromIntegral pV
-   let halfH     = 0.5 * fromIntegral pH
+   let halfV              = 0.5 * fromIntegral pV
+   let halfH              = 0.5 * fromIntegral pH
+
+
+   -- Only used if animating zoom
+   let pixelScale = exp $ (log (endVal / startVal)) / (frames - 1)
+   let changeInIterations = (fromIntegral (endIterations - maxIterations)) / frames
 
    let
       fractalFunction = case (fracType, animType) of
@@ -124,8 +133,14 @@ main = do
                $  (rMin + fromIntegral c * pixelSize)
                :+ (iMax - fromIntegral r * pixelSize)
          -- Mandelbrot zoom animation
-         (1, 2) -> \zoomFactor (r, c) ->
-            mandelbrotPoint aaEnable (pixelSize * zoomFactor) maxIterations power
+         (1, 2) -> \frame (r, c) ->
+            let zoomFactor = pixelScale ** frame
+            in
+               mandelbrotPoint
+                  aaEnable
+                  (pixelSize * zoomFactor)
+                  (floor ((fromIntegral maxIterations) + changeInIterations * frame))
+                  power
                $  ((fromIntegral c - halfH) * pixelSize * zoomFactor + rC)
                :+ ((fromIntegral r - halfV) * pixelSize * zoomFactor - iC)
          -- Mandelbrot maximum iteration count animation
@@ -134,10 +149,17 @@ main = do
                $  (fromIntegral c * pixelSize + rMin)
                :+ (iMax - fromIntegral r * pixelSize)
          -- Julia power animation
-         (2, 1) -> \power' (r, c) ->
-            juliaPoint aaEnable pixelSize maxIterations power' juliaC
-               $  (rMin + fromIntegral c * pixelSize)
-               :+ (iMax - fromIntegral r * pixelSize)
+         (2, 1) -> \frame (r, c) ->
+            let zoomFactor = pixelScale ** frame
+            in
+               juliaPoint
+                  aaEnable
+                  (pixelSize * zoomFactor)
+                  (floor ((fromIntegral maxIterations) + changeInIterations * frame))
+                  power
+                  juliaC
+               $  ((fromIntegral c - halfH) * pixelSize * zoomFactor + rC)
+               :+ ((fromIntegral r - halfV) * pixelSize * zoomFactor - iC)
          -- Julia zoom animation
          (2, 2) -> \zoomFactor (r, c) ->
             juliaPoint aaEnable (pixelSize * zoomFactor) maxIterations power juliaC
@@ -156,11 +178,8 @@ main = do
          -- Invalid input handling
          otherwise -> error "Invalid fractal type or animation type."
 
-   -- Only used if animating zoom
-   let pixelScale = exp $ (log (endVal / startVal)) / (frames - 1)
-
    let range = if animType == 2
-          then map (pixelScale **) [0 .. frames - 1]
+          then [0 .. frames - 1]
           else if frames == 1 || juliaFrames == 1
              then [startVal]
              else if animType == 4

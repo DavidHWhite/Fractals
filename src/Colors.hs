@@ -6,8 +6,6 @@ module Colors
 
 import           Data.Complex
 import qualified Graphics.Image                as I
-import qualified Graphics.Image.ColorSpace     as I
-import qualified Graphics.Image.Types          as I
 
 mod' :: RealFloat a => a -> a -> a
 mod' x y = (-) x . (*) y . fromIntegral . truncate $ x / y
