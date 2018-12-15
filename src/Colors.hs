@@ -35,10 +35,11 @@ colorGrey :: I.Pixel I.RGB Double -> Maybe Double -> I.Pixel I.RGB Double
 colorGrey setColor Nothing    = setColor
 colorGrey _        (Just val) = I.PixelRGB val val val
 
-colorGrad :: I.Pixel I.RGB Double -> [I.Pixel I.RGB Double] -> Maybe Double -> I.Pixel I.RGB Double
-colorGrad convergentC _      Nothing  = convergentC
-colorGrad _           colors (Just x) = interColors (colors !! section) (colors !! section + 1)
+colorGrad :: I.Pixel I.RGB Double -> Bool -> [I.Pixel I.RGB Double] -> Maybe Double -> I.Pixel I.RGB Double
+colorGrad convergentC _ _      Nothing  = convergentC
+colorGrad _           isCircular colorsIn (Just x) = interColors (colors !! section) (colors !! (section + 1))
  where
+  colors  = if isCircular then colorsIn ++ [head colorsIn] else colorsIn
   count   = fromIntegral $ (subtract 1) $ length colors
   section = truncate $ x * count
   p       = (* count) $ (x `mod'`) $ 1 / count

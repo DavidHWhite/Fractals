@@ -37,7 +37,7 @@ data Normalization
 data Color
    = Greyscale
    | Hue
-   | Gradient [I.Pixel I.RGB Double]
+   | Gradient Bool [I.Pixel I.RGB Double]
    deriving (Show)
 data Animation
    = NoAnimation
@@ -177,9 +177,12 @@ arguments
        , \(x : xs, opt) -> case (take 3 x) : xs of
           ("gre" : []  ) -> opt { color = Greyscale }
           ("hue" : []  ) -> opt { color = Hue }
+          ("gra" : "l" : args) -> if length args < 2
+             then error "Insufficient colors for a gradient to be formed"
+             else opt { color = (Gradient False $ map colorFromString args) }
           ("gra" : args) -> if length args < 2
              then error "Insufficient colors for a gradient to be formed"
-             else opt { color = (Gradient $ map colorFromString args) }
+             else opt { color = (Gradient True $ map colorFromString args) }
           otherwise -> error $ "Invalid arguments for -color: \"" ++ (show (x : xs)) ++ "\""
        )
      , ( "-an"
