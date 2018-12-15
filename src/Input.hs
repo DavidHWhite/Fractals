@@ -1,5 +1,4 @@
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE MultiWayIf #-}
 
 module Input
    ( Options(..)
@@ -61,7 +60,8 @@ data Options = Options
    , animation       :: Animation
    , cvalue          :: Complex Double
    , setColor        :: I.Pixel I.RGB Double
-   , frames          :: Int
+   , frameCount      :: Int
+   , startingFrame   :: Int
    } deriving (Show)
 
 defaultOptions = Options Mandelbrot
@@ -77,6 +77,7 @@ defaultOptions = Options Mandelbrot
                          (0 :+ 0)
                          (I.PixelRGB 0 0 0)
                          100
+                         1
 
 processArgs :: [String] -> Options
 processArgs = getOptionsFromArgs . separateArgs . normalizeArgs
@@ -183,11 +184,11 @@ arguments
        )
      , ( "-an"
        , \(x : xs, opt) -> case (take 3 x) : xs of
-          ("pow" : fn : fr : []) -> opt { animation = Power (read fn), frames = (read fr) }
+          ("pow" : fn : fr : []) -> opt { animation = Power (read fn), frameCount = (read fr) }
           ("zoo" : fn : fr : fi : []) ->
-             opt { animation = Zoom (read fn) (read fi), frames = (read fr) }
-          ("ite" : fn : fr : []) -> opt { animation = Iterations (read fn), frames = (read fr) }
-          ("the" : fn : fr : []) -> opt { animation = Theta (read fn), frames = (read fr) }
+             opt { animation = Zoom (read fn) (read fi), frameCount = (read fr) }
+          ("ite" : fn : fr : []) -> opt { animation = Iterations (read fn), frameCount = (read fr) }
+          ("the" : fn : fr : []) -> opt { animation = Theta (read fn), frameCount = (read fr) }
           ("non"           : []) -> opt { animation = NoAnimation }
           otherwise -> error $ "Invalid arguments for -animation: \"" ++ (show (x : xs)) ++ "\""
        )
@@ -202,45 +203,25 @@ arguments
           ([x], opt) -> opt { setColor = colorFromString x }
           x          -> error $ "Invalid arguments for -setColor: \"" ++ (show x) ++ "\""
        )
+     , ( "-st"
+       , \case
+          ([x], opt) -> opt { startingFrame = read x }
+          x          -> error $ "Invalid arguments for -startingFrame: \"" ++ (show x) ++ "\""
+       )
      ]
 
 pPrintOptions :: Options -> String
 pPrintOptions options =
-   "Fractal Type:    "
-      ++ (show $ fractalType options)
-      ++ '\n'
-      :  "Resolution:      "
-      ++ (show $ resolution options)
-      ++ '\n'
-      :  "Center:          "
-      ++ (show $ center options)
-      ++ '\n'
-      :  "Range:           "
-      ++ (show $ range options)
-      ++ '\n'
-      :  "Iterations:      "
-      ++ (show $ iterations options)
-      ++ '\n'
-      :  "Power:           "
-      ++ (show $ power options)
-      ++ '\n'
-      :  "AA:              "
-      ++ (show $ aa options)
-      ++ '\n'
-      :  "Normalization:   "
-      ++ (show $ normalization options)
-      ++ '\n'
-      :  "Color:           "
-      ++ (show $ color options)
-      ++ '\n'
-      :  "Animation:       "
-      ++ (show $ animation options)
-      ++ '\n'
-      :  "C-Value:         "
-      ++ (show $ cvalue options)
-      ++ '\n'
-      :  "Set Color:       "
-      ++ (show $ setColor options)
-      ++ '\n'
-      :  "Frames:          "
-      ++ (show $ frames options)
+   "Fractal Type:    " ++ (show $ fractalType   options) ++ '\n' :
+   "Resolution:      " ++ (show $ resolution    options) ++ '\n' :
+   "Center:          " ++ (show $ center        options) ++ '\n' :
+   "Range:           " ++ (show $ range         options) ++ '\n' :
+   "Iterations:      " ++ (show $ iterations    options) ++ '\n' :
+   "Power:           " ++ (show $ power         options) ++ '\n' :
+   "AA:              " ++ (show $ aa            options) ++ '\n' :
+   "Normalization:   " ++ (show $ normalization options) ++ '\n' :
+   "Color:           " ++ (show $ color         options) ++ '\n' :
+   "Animation:       " ++ (show $ animation     options) ++ '\n' :
+   "C-Value:         " ++ (show $ cvalue        options) ++ '\n' :
+   "Set Color:       " ++ (show $ setColor      options) ++ '\n' :
+   "Frames:          " ++ (show $ frameCount    options)

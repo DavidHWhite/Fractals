@@ -36,6 +36,8 @@ library
   build-depends:
       base >=4.7 && <5
     , hip
+    , directory
+    , time
   default-language: Haskell2010
 
 executable Fractals-exe
@@ -49,6 +51,8 @@ executable Fractals-exe
       Fractals
     , base >=4.7 && <5
     , hip
+    , directory
+    , time
   default-language: Haskell2010
 
 test-suite Fractals-test
@@ -63,4 +67,6 @@ test-suite Fractals-test
       Fractals
     , base >=4.7 && <5
     , hip
+    , directory
+    , time
   default-language: Haskell2010
