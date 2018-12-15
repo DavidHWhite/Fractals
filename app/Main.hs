@@ -1,6 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE BangPatterns, LambdaCase #-}
 
 module Main where
 
@@ -16,20 +14,32 @@ import           System.Directory
 import           Text.Printf
 import           Data.Time
 
+-- Entry point for program
 main :: IO ()
 main = do
-   args <- getArgs
+   argsIn <- getArgs
 
-   -- TODO add help
+   if not (length argsIn == 0) &&
+      (head argsIn == "h"      ||
+      head argsIn == "-h"      ||
+      head argsIn == "help"    ||
+      head argsIn == "-help"   ||
+      head argsIn == "?"       ||
+      head argsIn == "-?")
+     then do
+        putStrLn help
+     else do
+        args <- getArgs
+        let options = processArgs args
+        putStrLn $ pPrintOptions options
+        fractal args options
 
    -- TODO add parametric cval animation using hint package?
 
-   let options = processArgs args
-   putStrLn $ pPrintOptions options
-   fractal args options
-
 fractal :: [String] -> Options -> IO ()
-fractal args options@(Options fractalType (numRows, numColumns) (cReal :+ cImag) range iterations power aaIn normalization color animation cValue setColor framesIn startingFrame)
+fractal args options@(Options fractalType (numRows, numColumns) (cReal :+ cImag)
+                              range iterations power aaIn normalization color
+                              animation cValue setColor framesIn startingFrame)
    = do
       currentDir <- getCurrentDirectory
       path       <- fmap
@@ -77,7 +87,7 @@ fractal args options@(Options fractalType (numRows, numColumns) (cReal :+ cImag)
                  (Power      final) -> interpolate power final
                  (Iterations final) -> interpolate (fromIntegral iterations) (fromIntegral final)
                  (Theta      final) -> interpolate (phase cValue) (final * pi / 180)
-              . (/ (frames - 1))
+              . (if frames /= 1 then (/ (frames - 1)) else id)
      )
      [fromIntegral startingFrame - 1 .. frames - 1]
   zoomIVals = case animation of
@@ -123,3 +133,54 @@ fractal args options@(Options fractalType (numRows, numColumns) (cReal :+ cImag)
 
 interpolate :: Double -> Double -> Double -> Double
 interpolate i f p = (i +) $ (* p) $ (f - i)
+
+help :: String
+help = 
+ "** Mayge's Fractal Generator - Help **                                                           \n\
+ \                                                                                                 \n\
+ \By default, this program generates a fractal with the following attributes:                      \n"
+ ++ pPrintOptions defaultOptions ++
+ "                                                                                                 \n\
+ \These defaults can be changed through a series of command line arguments:                        \n\
+ \                                                                                                 \n\
+ \   -fractal |mandelbrot             The type of fractal to be generated                          \n\
+ \            |julia                                                                               \n\
+ \                                                                                                 \n\
+ \   -resolution horix vert           The resolution of your images                                \n\
+ \                                                                                                 \n\
+ \   -center |rectangular real imag   The complex center of your images                            \n\
+ \           |polar mag phase                                                                      \n\
+ \                                                                                                 \n\
+ \   -range r                         The real distance from the center to the edge of your picture\n\
+ \                                                                                                 \n\
+ \   -iterations i                    The maximum number of times a point should be iterated       \n\
+ \                                                                                                 \n\
+ \   -power p                         The power used in the iteration equation                     \n\
+ \                                                                                                 \n\
+ \   -aa |enabled                     Whether subsampling antialiasing (9 subpixels) should be used\n\
+ \       |disabled                                                                                 \n\
+ \                                                                                                 \n\
+ \   -normalization |linear           The method used to map iteration counts to [0,1] for coloring\n\
+ \                  |sigmoid mid pwr                                                               \n\
+ \                  |periodic period                                                               \n\
+ \                  |sine period                                                                   \n\
+ \                                                                                                 \n\
+ \   -color |greyscale                The color scheme used to generate the images                 \n\
+ \          |hue                                                                                   \n\
+ \          |gradient [r,g,b]                                                                      \n\
+ \          |gradient linear [r,g,b]                                                               \n\
+ \                                                                                                 \n\
+ \   -animation |none                 The animation that should be generated                       \n\
+ \              |power fnl frms                                                                    \n\
+ \              |zoom fnl frms fIter                                                               \n\
+ \              |iterations fnl frms                                                               \n\
+ \              |theta fnl frms                                                                    \n\
+ \                                                                                                 \n\
+ \   -cvalue  |rectangular real imag  The point c used for ccreation of a Julia fractal            \n\
+ \            |polar mag phase                                                                     \n\
+ \                                                                                                 \n\
+ \   -setcolor r,g,b                  The color used for points within the set                     \n\
+ \                                                                                                 \n\
+ \   -startingframe f                 The frame to begin on                                        \n\
+ \                                                                                                 \n\
+ \Only the first 3 characters (including dashes) of any argument are required.                     "

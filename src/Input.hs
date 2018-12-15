@@ -20,32 +20,16 @@ import           System.Environment
 import           Data.Char
 import qualified Graphics.Image                as I
 
-data FractalType
-   = Mandelbrot
-   | Julia
-   deriving (Show)
+data FractalType =
+   Mandelbrot | Julia deriving (Show)
 data AA
-   = AAEnabled
-   | AADisabled
-   deriving (Show)
-data Normalization
-   = Linear
-   | Sigmoid Double Double
-   | Periodic Double
-   | Sine Double
-   deriving (Show)
-data Color
-   = Greyscale
-   | Hue
-   | Gradient Bool [I.Pixel I.RGB Double]
-   deriving (Show)
-data Animation
-   = NoAnimation
-   | Power Double
-   | Zoom Double Int
-   | Iterations Int
-   | Theta Double
-   deriving (Show)
+   = AAEnabled | AADisabled deriving (Show)
+data Normalization =
+   Linear | Sigmoid Double Double | Periodic Double | Sine Double deriving (Show)
+data Color =
+   Greyscale | Hue | Gradient Bool [I.Pixel I.RGB Double] deriving (Show)
+data Animation =
+   NoAnimation | Power Double | Zoom Double Int | Iterations Int | Theta Double deriving (Show)
 
 data Options = Options
    { fractalType     :: FractalType
@@ -133,7 +117,7 @@ arguments
        )
      , ( "-re"
        , \case
-          (r : c : [], opt) -> opt { resolution = (read r, read c) }
+          (c : r : [], opt) -> opt { resolution = (read r, read c) }
           x                 -> error $ "Invalid arguments for -resolution: \"" ++ (show x) ++ "\""
        )
      , ( "-ce"
@@ -177,7 +161,7 @@ arguments
        , \(x : xs, opt) -> case (take 3 x) : xs of
           ("gre" : []  ) -> opt { color = Greyscale }
           ("hue" : []  ) -> opt { color = Hue }
-          ("gra" : "l" : args) -> if length args < 2
+          ("gra" : ('l':_) : args) -> if length args < 2
              then error "Insufficient colors for a gradient to be formed"
              else opt { color = (Gradient False $ map colorFromString args) }
           ("gra" : args) -> if length args < 2

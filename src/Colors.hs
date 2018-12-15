@@ -9,7 +9,6 @@ module Colors
    , colorGrey
    , colorHue
    , colorGrad
-   -- , mod'
    )
 where
 
@@ -49,10 +48,10 @@ colorGrad _           isCircular colorsIn (Just x) = interColors (colors !! sect
 
 colorHue :: I.Pixel I.RGB Double -> Maybe Double -> I.Pixel I.RGB Double
 colorHue setColor Nothing = setColor
-colorHue _ (Just x) | x' <= 1   = I.PixelRGB x' 0 1
-                    | x' <= 2   = I.PixelRGB 1 0 (2 - x')
-                    | x' <= 3   = I.PixelRGB 1 (x' - 2) 0
-                    | x' <= 4   = I.PixelRGB (4 - x') 1 0
-                    | x' <= 5   = I.PixelRGB 0 1 (x' - 4)
-                    | otherwise = I.PixelRGB 0 (6 - x') 1
+colorHue _        (Just x) | x' <= 1   = I.PixelRGB x'       0        1       
+                           | x' <= 2   = I.PixelRGB 1        0        (2 - x')
+                           | x' <= 3   = I.PixelRGB 1        (x' - 2) 0       
+                           | x' <= 4   = I.PixelRGB (4 - x') 1        0       
+                           | x' <= 5   = I.PixelRGB 0        1        (x' - 4)
+                           | otherwise = I.PixelRGB 0        (6 - x') 1
    where x' = 6 * x
