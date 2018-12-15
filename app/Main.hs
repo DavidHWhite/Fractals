@@ -19,32 +19,46 @@ import           Data.Time
 main :: IO ()
 main = do
    args <- getArgs
+
+   -- TODO add help
+
+   -- TODO add parametric cval animation with hint?
+
    let options = processArgs args
    putStrLn $ pPrintOptions options
    fractal args options
 
 fractal :: [String] -> Options -> IO ()
-fractal args (Options fractalType (numRows, numColumns) center range iterations power aa normalization color animation cvalue setColor framesIn startingFrame)
+fractal args options@(Options fractalType (numRows, numColumns) (cReal :+ cImag) range iterations power aaIn normalization color animation cValue setColor framesIn startingFrame)
    = do
       currentDir <- getCurrentDirectory
-      path <- fmap (((currentDir ++ "\\Generated Fractals\\") ++) . reverse . drop 12 . reverse . (map (\case ':' -> '\xA789'; x -> x)) . show) getCurrentTime
+      path       <- fmap
+         ( (++ ('(' : unwords args ++ ")"))
+         . ((currentDir ++ "\\Generated Fractals\\") ++)
+         . reverse
+         . drop 12
+         . reverse
+         . map
+              (\case
+                 ':' -> '\xA789'
+                 x   -> x
+              )
+         . show
+         )
+         getCurrentTime
       createDirectoryIfMissing True path
       setCurrentDirectory path
-      writeFile ("arguments.txt") (unwords args)
+      writeFile ("arguments.txt") (pPrintOptions options)
       mapM_
-         (\frame ->
-            let value = animRange !! frame
-            in
-               I.writeImage
-                  (path ++ '\\' : show (frame + 1) ++ ".png")
-                  (I.makeImageR I.RPU
-                                (numRows, numColumns)
-                                (\point -> colorFunc $ fractalFunction value point)
-                  )
+         (\frame -> I.writeImage
+            (path ++ '\\' : show (frame + 1) ++ ".png")
+            (I.makeImageR I.RPU
+                          (numRows, numColumns)
+                          (\point -> colorFunc $ fractalFunction frame point)
+            ) >> putStr ('\r' : (show $ frames + 1))
          )
          [0 .. (truncate frames) - 1]
  where
-   -- TODO add help
   frames = case animation of
      NoAnimation -> 1
      otherwise   -> fromIntegral framesIn
@@ -60,80 +74,62 @@ fractal args (Options fractalType (numRows, numColumns) center range iterations 
                 (Periodic period     ) -> normPeriodic period
                 (Sine     period     ) -> normSine period
              )
-  animRange = map
-     ( (case animation of
-          (Power final     ) -> interpolate power final
-          (Zoom final _    ) -> ((exp $ (log (final / range)) / (frames - 1)) **)
-          (Iterations final) -> interpolate (fromIntegral iterations) (fromIntegral final)
-          (Theta      final) -> interpolate (phase cvalue) final
-          NoAnimation        -> id
-       )
-     . (/ (frames - 1))
+  aa = case aaIn of
+     AAEnabled  -> True
+     AADisabled -> False
+  animVals = map
+     (case animation of
+        (Zoom final _) -> ((exp $ (log (final / range)) / (frames - 1)) **)
+        otherwise ->
+           case animation of
+                 NoAnimation        -> \x -> 1
+                 (Power      final) -> interpolate power final
+                 (Iterations final) -> interpolate (fromIntegral iterations) (fromIntegral final)
+                 (Theta      final) -> interpolate (phase cValue) final
+              . (/ (frames - 1))
      )
      [fromIntegral startingFrame - 1 .. frames - 1]
-
-  zoomIterRange = case animation of
+  zoomIVals = case animation of
      (Zoom _ finalIter) -> map
         (round . (interpolate (fromIntegral iterations) (fromIntegral finalIter)) . (/ frames))
         [fromIntegral startingFrame - 1 .. frames - 1]
      otherwise -> error "Why is zoomIterRange being used when the selected animation isn't Zoom?"
-  pixelSize       = (2 * range) / (fromIntegral $ numColumns - 1)
-  rMin            = (realPart center) - range
-  iMax            = (imagPart center) + (pixelSize * (fromIntegral (numRows - 1) / 2))
-  halfV           = 0.5 * fromIntegral numRows
-  halfH           = 0.5 * fromIntegral numColumns
-  fractalFunction = case (fractalType, animation)
-
-   -- let
-   --    fractalFunction = case (fracType, animType) of
-   --       -- Mandelbrot power animation
-   --       (1, 1) -> \power' (r, c) ->
-   --          mandelbrotPoint aaEnable pixelSize maxIterations power'
-   --             $  (rMin + fromIntegral c * pixelSize)
-   --             :+ (iMax - fromIntegral r * pixelSize)
-   --       -- Mandelbrot zoom animation
-   --       (1, 2) -> \frame (r, c) ->
-   --          let zoomFactor = pixelScale ** frame
-   --          in
-   --             mandelbrotPoint
-   --                aaEnable
-   --                (pixelSize * zoomFactor)
-   --                (floor ((fromIntegral maxIterations) + changeInIterations * frame))
-   --                power
-   --             $  ((fromIntegral c - halfH) * pixelSize * zoomFactor + rC)
-   --             :+ ((fromIntegral r - halfV) * pixelSize * zoomFactor - iC)
-   --       -- Mandelbrot maximum iteration count animation
-   --       (1, 3) -> \maxIterations' (r, c) ->
-   --          mandelbrotPoint aaEnable pixelSize (floor maxIterations') power
-   --             $  (fromIntegral c * pixelSize + rMin)
-   --             :+ (iMax - fromIntegral r * pixelSize)
-   --       -- Julia power animation
-   --       (2, 1) -> \frame (r, c) ->
-   --          let zoomFactor = pixelScale ** frame
-   --          in  juliaPoint aaEnable
-   --                         (pixelSize * zoomFactor)
-   --                         (floor ((fromIntegral maxIterations) + changeInIterations * frame))
-   --                         power
-   --                         juliaC
-   --              $  ((fromIntegral c - halfH) * pixelSize * zoomFactor + rC)
-   --              :+ ((fromIntegral r - halfV) * pixelSize * zoomFactor - iC)
-   --       -- Julia zoom animation
-   --       (2, 2) -> \zoomFactor (r, c) ->
-   --          juliaPoint aaEnable (pixelSize * zoomFactor) maxIterations power juliaC
-   --             $  ((fromIntegral c - halfH) * pixelSize * zoomFactor + rC)
-   --             :+ ((fromIntegral r - halfV) * pixelSize * zoomFactor - iC)
-   --       -- Julia maximum iteration count animation
-   --       (2, 3) -> \maxIterations' (r, c) ->
-   --          juliaPoint aaEnable pixelSize (floor maxIterations') power juliaC
-   --             $  (fromIntegral c * pixelSize + rMin)
-   --             :+ (iMax - fromIntegral r * pixelSize)
-   --       -- Julia polar c-value animation
-   --       (2, 4) -> \theta (r, c) ->
-   --          juliaPoint aaEnable pixelSize maxIterations power (mkPolar juliaMagnitude $ theta)
-   --             $  (fromIntegral c * pixelSize + rMin)
-   --             :+ (iMax - fromIntegral r * pixelSize)
-   --       -- Invalid input handling
-   --       otherwise -> error "Invalid fractal type or animation type."
+  pixelSize = (2 * range) / (fromIntegral $ numColumns - 1)
+  fractalFunction :: Int -> (Int, Int) -> Maybe Double
+  fractalFunction frame (r, c) = case (fractalType, animation) of
+     -- All Mandelbrot animation functions
+     (Mandelbrot, NoAnimation) ->
+        pMandelbrot aa pixelSize          iterations           power $ pairToComplex  (r, c)
+     (Mandelbrot, Power _) ->
+        pMandelbrot aa pixelSize          iterations           aVAL  $ pairToComplex  (r, c)
+     (Mandelbrot, Zoom _ _) ->
+        pMandelbrot aa (pixelSize * aVAL) (zoomIVals !! frame) power $ pairToComplexZ (r, c) aVAL
+     (Mandelbrot, Iterations _) ->
+        pMandelbrot aa pixelSize           (round aVAL)        power $ pairToComplex  (r, c)
+     (Mandelbrot, Theta _) ->
+        error "Theta animations can only be generated for Julia fractals"
+     -- All Julia animation functions
+     (Julia, NoAnimation) ->
+        pJulia aa pixelSize          iterations           power cValue              $ pairToComplex  (r, c)
+     (Julia, Power _) ->
+        pJulia aa pixelSize          iterations           aVAL  cValue              $ pairToComplex  (r, c)
+     (Julia, Zoom _ _) ->
+        pJulia aa (pixelSize * aVAL) (zoomIVals !! frame) power cValue              $ pairToComplexZ (r, c) aVAL
+     (Julia, Iterations _) ->
+        pJulia aa pixelSize          (round aVAL)         power cValue              $ pairToComplex  (r, c)
+     (Julia, Theta _) ->
+        pJulia aa pixelSize          iterations           power (mkPolar aVAL cMag) $ pairToComplex  (r, c)
+   where
+    cMag = magnitude cValue
+    aVAL = animVals !! frame
+    halfV = 0.5 * fromIntegral numRows
+    halfH = 0.5 * fromIntegral numColumns
+    pairToComplex (r, c) =
+       (cReal - range + fromIntegral c * pixelSize)
+          :+ (cImag + (pixelSize * (fromIntegral (numRows - 1) / 2)) - fromIntegral r * pixelSize)
+    pairToComplexZ (r, c) zoomFactor =
+       ((fromIntegral c - halfH) * pixelSize * zoomFactor + cReal)
+          :+ ((fromIntegral r - halfV) * pixelSize * zoomFactor - cImag)
 
 interpolate :: Double -> Double -> Double -> Double
 interpolate i f p = (i +) $ (* p) $ (f - i)

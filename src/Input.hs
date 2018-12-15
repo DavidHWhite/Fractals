@@ -40,11 +40,11 @@ data Color
    | Gradient [I.Pixel I.RGB Double]
    deriving (Show)
 data Animation
-   = Power Double
+   = NoAnimation
+   | Power Double
    | Zoom Double Int
    | Iterations Int
    | Theta Double
-   | NoAnimation
    deriving (Show)
 
 data Options = Options
@@ -218,10 +218,11 @@ pPrintOptions options =
    "Range:           " ++ (show $ range         options) ++ '\n' :
    "Iterations:      " ++ (show $ iterations    options) ++ '\n' :
    "Power:           " ++ (show $ power         options) ++ '\n' :
-   "AA:              " ++ (show $ aa            options) ++ '\n' :
+   "Antialiasing:    " ++ (show $ aa            options) ++ '\n' :
    "Normalization:   " ++ (show $ normalization options) ++ '\n' :
    "Color:           " ++ (show $ color         options) ++ '\n' :
    "Animation:       " ++ (show $ animation     options) ++ '\n' :
    "C-Value:         " ++ (show $ cvalue        options) ++ '\n' :
    "Set Color:       " ++ (show $ setColor      options) ++ '\n' :
-   "Frames:          " ++ (show $ frameCount    options)
+   "Frames:          " ++ (show $ frameCount    options) ++ '\n' :
+   "Starting frame:  " ++ (show $ startingFrame options)

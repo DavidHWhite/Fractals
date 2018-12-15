@@ -1,6 +1,6 @@
 module Fractals
-   ( mandelbrotPoint
-   , juliaPoint
+   ( pMandelbrot
+   , pJulia
    )
 where
 
@@ -8,12 +8,12 @@ import           Data.Complex
 
 data PointResult = Convergent | Divergent Int (Complex Double)
 
-mandelbrotPoint :: Bool -> Double -> Int -> Double -> Complex Double -> Maybe Double
-mandelbrotPoint aa pixelSize maxIterations power point =
+pMandelbrot :: Bool -> Double -> Int -> Double -> Complex Double -> Maybe Double
+pMandelbrot aa pixelSize maxIterations power point =
    fPoint aa pixelSize maxIterations power (\d z -> z ** (d :+ 0) + point) point
 
-juliaPoint :: Bool -> Double -> Int -> Double -> Complex Double -> Complex Double -> Maybe Double
-juliaPoint aa pixelSize maxIterations power c point =
+pJulia :: Bool -> Double -> Int -> Double -> Complex Double -> Complex Double -> Maybe Double
+pJulia aa pixelSize maxIterations power c point =
    fPoint aa pixelSize maxIterations power (\d z -> z ** (d :+ 0) + c) point
 
 fPoint
@@ -24,7 +24,7 @@ fPoint
    -> (Double -> Complex Double -> Complex Double)
    -> Complex Double
    -> Maybe Double
-fPoint aaEnable pixelSize maxIterations power f z0 = if not aaEnable
+fPoint bAAEnabled pixelSize maxIterations power f z0 = if not bAAEnabled
    then normalize $ iterPoint 0 z0
    else
       (\(sum, count', isConvergent) ->
@@ -33,7 +33,7 @@ fPoint aaEnable pixelSize maxIterations power f z0 = if not aaEnable
          $ foldl
               (\(sum, countConv, isConvergent) y -> if countConv > maxConvergent
                  then (sum, countConv, True)
-                 else case normalize . (iterPoint 0) $ z0 + y of
+                 else case normalize . iterPoint 0 $ z0 + y of
                     Nothing -> (sum, countConv + 1, False)
                     Just z  -> (sum + z, countConv, False)
               )
