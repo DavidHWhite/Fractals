@@ -29,7 +29,7 @@ data Normalization =
 data Color =
    Greyscale | Hue | Gradient Bool [I.Pixel I.RGB Double] deriving (Show)
 data Animation =
-   NoAnimation | Power Double | Zoom Double Int | Iterations Int | Theta Double deriving (Show)
+   NoAnimation | Power Double | Zoom Double Int | Iterations Int | Theta Double | Magnitude Double deriving (Show)
 
 data Options = Options
    { fractalType     :: FractalType
@@ -108,94 +108,94 @@ colorFromString s =
 -- Array of all command line arguments and functions to interpret their subarguments
 -- It is assumed that arguments have been converted to lowercase and shortened to 3 characters
 arguments :: [(String, (([String], Options) -> Options))]
-arguments
-   = [ ( "-fr"
-       , \(x : xs, opt) -> case (take 3 x) : xs of
-          ("man" : []) -> opt { fractalType = Mandelbrot }
-          ("jul" : []) -> opt { fractalType = Julia }
-          otherwise -> error $ "Invalid arguments for -fractalType: \"" ++ (show (x : xs)) ++ "\""
-       )
-     , ( "-re"
-       , \case
-          (c : r : [], opt) -> opt { resolution = (read r, read c) }
-          x                 -> error $ "Invalid arguments for -resolution: \"" ++ (show x) ++ "\""
-       )
-     , ( "-ce"
-       , \(x : xs, opt) -> case (take 3 x) : xs of
-          ("rec" : r : i : []) -> opt { center = read r :+ read i }
-          ("pol" : m : p : []) -> opt { center = mkPolar (read m) (read p) }
-          otherwise -> error $ "Invalid arguments for -center: \"" ++ (show (x : xs)) ++ "\""
-       )
-     , ( "-ra"
-       , \case
-          (n : [], opt) -> opt { range = read n }
-          x             -> error $ "Invalid arguments for -range: \"" ++ (show x) ++ "\""
-       )
-     , ( "-it"
-       , \case
-          (n : [], opt) -> opt { iterations = read n }
-          x             -> error $ "Invalid arguments for -iterations: \"" ++ (show x) ++ "\""
-       )
-     , ( "-po"
-       , \case
-          (n : [], opt) -> opt { power = read n }
-          x             -> error $ "Invalid arguments for -power: \"" ++ (show x) ++ "\""
-       )
-     , ( "-aa"
-       , \(x : xs, opt) -> case (take 3 x) : xs of
-          ("ena" : []) -> opt { aa = AAEnabled }
-          ("dis" : []) -> opt { aa = AADisabled }
-          otherwise    -> error $ "Invalid arguments for -aa: \"" ++ (show (x : xs)) ++ "\""
-       )
-     , ( "-no"
-       , \(x : xs, opt) -> case (take 3 x) : xs of
-          ("lin"         : []) -> opt { normalization = Linear }
-          ("sig"     : c : []) -> opt { normalization = Sigmoid (read c) 2.5 }
-          ("sig" : c : p : []) -> opt { normalization = Sigmoid (read c) (read p) }
-          ("per"     : p : []) -> opt { normalization = Periodic (read p) }
-          ("sin"     : p : []) -> opt { normalization = Sine (read p) }
-          otherwise ->
-             error $ "Invalid arguments for -normalization: \"" ++ (show (x : xs)) ++ "\""
-       )
-     , ( "-co"
-       , \(x : xs, opt) -> case (take 3 x) : xs of
-          ("gre" : []  ) -> opt { color = Greyscale }
-          ("hue" : []  ) -> opt { color = Hue }
-          ("gra" : ('l':_) : args) -> if length args < 2
-             then error "Insufficient colors for a gradient to be formed"
-             else opt { color = (Gradient False $ map colorFromString args) }
-          ("gra" : args) -> if length args < 2
-             then error "Insufficient colors for a gradient to be formed"
-             else opt { color = (Gradient True $ map colorFromString args) }
-          otherwise -> error $ "Invalid arguments for -color: \"" ++ (show (x : xs)) ++ "\""
-       )
-     , ( "-an"
-       , \(x : xs, opt) -> case (take 3 x) : xs of
-          ("pow" : fn : fr : []) -> opt { animation = Power (read fn), frameCount = (read fr) }
-          ("zoo" : fn : fr : fi : []) ->
-             opt { animation = Zoom (read fn) (read fi), frameCount = (read fr) }
-          ("ite" : fn : fr : []) -> opt { animation = Iterations (read fn), frameCount = (read fr) }
-          ("the" : fn : fr : []) -> opt { animation = Theta (read fn), frameCount = (read fr) }
-          ("non"           : []) -> opt { animation = NoAnimation }
-          otherwise -> error $ "Invalid arguments for -animation: \"" ++ (show (x : xs)) ++ "\""
-       )
-     , ( "-cv"
-       , \(x : xs, opt) -> case (take 3 x) : xs of
-          ("rec" : r : i : []) -> opt { cvalue = read r :+ read i }
-          ("pol" : m : p : []) -> opt { cvalue = mkPolar (read m) ((/ 180) . (* pi) $ read p) }
-          otherwise -> error $ "Invalid arguments for -cvalue: \"" ++ (show (x : xs)) ++ "\""
-       )
-     , ( "-se"
-       , \case
-          ([x], opt) -> opt { setColor = colorFromString x }
-          x          -> error $ "Invalid arguments for -setColor: \"" ++ (show x) ++ "\""
-       )
-     , ( "-st"
-       , \case
-          ([x], opt) -> opt { startingFrame = read x }
-          x          -> error $ "Invalid arguments for -startingFrame: \"" ++ (show x) ++ "\""
-       )
-     ]
+arguments =
+   [ ( "-fr"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("man" : []) -> opt { fractalType = Mandelbrot }
+        ("jul" : []) -> opt { fractalType = Julia }
+        otherwise    -> error $ "Invalid arguments for -fractalType: \"" ++ (show (x : xs)) ++ "\""
+     )
+   , ( "-re"
+     , \case
+        (c : r : [], opt) -> opt { resolution = (read r, read c) }
+        x                 -> error $ "Invalid arguments for -resolution: \"" ++ (show x) ++ "\""
+     )
+   , ( "-ce"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("rec" : r : i : []) -> opt { center = read r :+ read i }
+        ("pol" : m : p : []) -> opt { center = mkPolar (read m) (read p) }
+        otherwise            -> error $ "Invalid arguments for -center: \"" ++ (show (x : xs)) ++ "\""
+     )
+   , ( "-ra"
+     , \case
+        (n : [], opt) -> opt { range = read n }
+        x             -> error $ "Invalid arguments for -range: \"" ++ (show x) ++ "\""
+     )
+   , ( "-it"
+     , \case
+        (n : [], opt) -> opt { iterations = read n }
+        x             -> error $ "Invalid arguments for -iterations: \"" ++ (show x) ++ "\""
+     )
+   , ( "-po"
+     , \case
+        (n : [], opt) -> opt { power = read n }
+        x             -> error $ "Invalid arguments for -power: \"" ++ (show x) ++ "\""
+     )
+   , ( "-aa"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("ena" : []) -> opt { aa = AAEnabled }
+        ("dis" : []) -> opt { aa = AADisabled }
+        otherwise    -> error $ "Invalid arguments for -aa: \"" ++ (show (x : xs)) ++ "\""
+     )
+   , ( "-no"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("lin"         : []) -> opt { normalization = Linear }
+        ("sig"     : c : []) -> opt { normalization = Sigmoid (read c) 2.5 }
+        ("sig" : c : p : []) -> opt { normalization = Sigmoid (read c) (read p) }
+        ("per"     : p : []) -> opt { normalization = Periodic (read p) }
+        ("sin"     : p : []) -> opt { normalization = Sine (read p) }
+        otherwise -> error $ "Invalid arguments for -normalization: \"" ++ (show (x : xs)) ++ "\""
+     )
+   , ( "-co"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("gre"             : []  ) -> opt { color = Greyscale }
+        ("hue"             : []  ) -> opt { color = Hue }
+        ("gra" : ('l' : _) : args) -> if length args < 2
+           then error "Insufficient colors for a gradient to be formed"
+           else opt { color = (Gradient False $ map colorFromString args) }
+        ("gra" : args) -> if length args < 2
+           then error "Insufficient colors for a gradient to be formed"
+           else opt { color = (Gradient True $ map colorFromString args) }
+        otherwise -> error $ "Invalid arguments for -color: \"" ++ (show (x : xs)) ++ "\""
+     )
+   , ( "-an"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("non"           : []) -> opt { animation = NoAnimation }
+        ("pow" : fn : fr : []) -> opt { animation = Power (read fn), frameCount = (read fr) }
+        ("zoo" : fn : fr : fi : []) ->
+           opt { animation = Zoom (read fn) (read fi), frameCount = (read fr) }
+        ("ite" : fn : fr : []) -> opt { animation = Iterations (read fn), frameCount = (read fr) }
+        ("the" : fn : fr : []) -> opt { animation = Theta (read fn), frameCount = (read fr) }
+        ("mag" : fn : fr : []) -> opt { animation = Magnitude (read fn), frameCount = (read fr) }
+        otherwise -> error $ "Invalid arguments for -animation: \"" ++ (show (x : xs)) ++ "\""
+     )
+   , ( "-cv"
+     , \(x : xs, opt) -> case (take 3 x) : xs of
+        ("rec" : r : i : []) -> opt { cvalue = read r :+ read i }
+        ("pol" : m : p : []) -> opt { cvalue = mkPolar (read m) ((/ 180) . (* pi) $ read p) }
+        otherwise            -> error $ "Invalid arguments for -cvalue: \"" ++ (show (x : xs)) ++ "\""
+     )
+   , ( "-se"
+     , \case
+        ([x], opt) -> opt { setColor = colorFromString x }
+        x          -> error $ "Invalid arguments for -setColor: \"" ++ (show x) ++ "\""
+     )
+   , ( "-st"
+     , \case
+        ([x], opt) -> opt { startingFrame = read x }
+        x          -> error $ "Invalid arguments for -startingFrame: \"" ++ (show x) ++ "\""
+     )
+   ]
 
 pPrintOptions :: Options -> String
 pPrintOptions options =
