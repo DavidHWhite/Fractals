@@ -1,8 +1,4 @@
-module Fractals
-   ( pMandelbrot
-   , pJulia
-   )
-where
+module Fractals (pMandelbrot, pJulia) where
 
 import           Data.Complex
 
@@ -58,12 +54,7 @@ fPoint bAAEnabled pixelSize maxIterations power f z0 = if not bAAEnabled
   normalize Convergent      = Nothing
   normalize (Divergent 0 _) = Just 0
   normalize (Divergent iterations final) =
-     Just
-        . (fromIntegral iterations + 1 -)
-        . logBase power
-        . logBase maxMagnitude
-        . magnitude
-        $ final
+     Just . (fromIntegral iterations + 1 -) . logBase power . logBase maxMagnitude . magnitude $ final
   size'             = pixelSize / 3
   numberOfSubpoints = 9
   maxConvergent     = 4

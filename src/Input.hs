@@ -29,7 +29,8 @@ data Normalization =
 data Color =
    Greyscale | Hue | Gradient Bool [I.Pixel I.RGB Double] deriving (Show)
 data Animation =
-   NoAnimation | Power Double | Zoom Double Int | Iterations Int | Theta Double | Magnitude Double deriving (Show)
+   NoAnimation | Power Double | Zoom Double Int |
+   Iterations Int | Theta Double | LinearC (Complex Double) deriving (Show)
 
 data Options = Options
    { fractalType     :: FractalType
@@ -123,7 +124,7 @@ arguments =
    , ( "-ce"
      , \(x : xs, opt) -> case (take 3 x) : xs of
         ("rec" : r : i : []) -> opt { center = read r :+ read i }
-        ("pol" : m : p : []) -> opt { center = mkPolar (read m) (read p) }
+        ("pol" : m : p : []) -> opt { center = mkPolar (read m) ((/ 180) . (* pi) $ read p) }
         otherwise            -> error $ "Invalid arguments for -center: \"" ++ (show (x : xs)) ++ "\""
      )
    , ( "-ra"
@@ -176,7 +177,12 @@ arguments =
            opt { animation = Zoom (read fn) (read fi), frameCount = (read fr) }
         ("ite" : fn : fr : []) -> opt { animation = Iterations (read fn), frameCount = (read fr) }
         ("the" : fn : fr : []) -> opt { animation = Theta (read fn), frameCount = (read fr) }
-        ("mag" : fn : fr : []) -> opt { animation = Magnitude (read fn), frameCount = (read fr) }
+        ("lin" : ty : xs) -> case ((take 3 ty) : xs) of
+           ("rec" : r : i : fr : []) ->
+              opt { animation = LinearC (read r :+ read i), frameCount = (read fr) }
+           ("pol" : m : p : fr : []) ->
+              opt { animation = LinearC (mkPolar (read m) ((/ 180) . (* pi) $ read p))
+                  , frameCount = (read fr) }
         otherwise -> error $ "Invalid arguments for -animation: \"" ++ (show (x : xs)) ++ "\""
      )
    , ( "-cv"
