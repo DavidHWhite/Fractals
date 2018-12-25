@@ -37,8 +37,6 @@ main = do
         hFlush stdout
         fractal args options
 
-   -- TODO add parametric cval animation using hint package?
-
 fractal :: [String] -> Options -> IO ()
 fractal args options@(Options fractalType (numRows, numColumns) (cReal :+ cImag)
                               range iterations power aaIn normalization color
@@ -151,7 +149,8 @@ fractal args options@(Options fractalType (numRows, numColumns) (cReal :+ cImag)
     -- Function to get a complex point from a pixel coordinate pair
     pairToComplex (r, c) =
        (cReal - range + fromIntegral c * pixelSize)
-          :+ (cImag + (pixelSize * (fromIntegral (numRows - 1) / 2)) - fromIntegral r * pixelSize)    
+          :+ (cImag + (pixelSize * (fromIntegral (numRows - 1) / 2)) - fromIntegral r * pixelSize)
+          
     -- Same as above but for zoom animations
     pairToComplexZ (r, c) zoomFactor =
        ((fromIntegral c - halfH) * pixelSize * zoomFactor + cReal)

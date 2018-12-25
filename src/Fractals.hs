@@ -4,10 +4,12 @@ import           Data.Complex
 
 data PointResult = Convergent | Divergent Int (Complex Double)
 
+-- Calculates a point in the Mandelbrot set
 pMandelbrot :: Bool -> Double -> Int -> Double -> Complex Double -> Maybe Double
 pMandelbrot aa pixelSize maxIterations power point =
    fPoint aa pixelSize maxIterations power (\d z -> z ** (d :+ 0) + point) point
 
+-- Calculates a point in the Julia set
 pJulia :: Bool -> Double -> Int -> Double -> Complex Double -> Complex Double -> Maybe Double
 pJulia aa pixelSize maxIterations power c point =
    fPoint aa pixelSize maxIterations power (\d z -> z ** (d :+ 0) + c) point

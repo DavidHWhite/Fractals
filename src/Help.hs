@@ -141,30 +141,41 @@ argumentHelp =
      )
    , ( "-an"
      , "*** Mayge's Fractal Generator :: Help :: -animation ***                                 \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        "
+       "-animation none                                                                         \n" ++
+       "   Generates a single frame.                                                            \n" ++
+       "-animation power (float final) (int frames)                                             \n" ++
+       "   Generates an animation which varies the power used in the iteration equation.        \n" ++
+       "-animation zoom (float final) (int frames) (int fianlIterations)                        \n" ++
+       "   Generates an animation which zooms into the fractal to the specified final range,    \n" ++
+       "   while also varying the maximum iteration count (as increasingly zoomed in views      \n" ++
+       "   require more iterations to reveal all their detail.                                  \n" ++
+       "-animation iterations (int final) (int frames)                                          \n" ++
+       "   Generates an animation which varies the maximum number of iterations.                \n" ++
+       "-animation theta (float final) (int frames)   *JULIA ONLY*                              \n" ++
+       "   Generates an animation by varying the theta value (aka phase or angle) of the c-value\n" ++
+       "   used to generate a Julia set.                                                        \n" ++
+       "-animation linear (complex final) (int frames) *JULIA ONLY*                             \n" ++
+       "   Generates an animation by varying the c-value used to generate a Julia set linearly. "
      )
    , ( "-cv"
-     , "*** Mayge's Fractal Generator :: Help :: -cvalue ***                                    \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        "
+     , "*** Mayge's Fractal Generator :: Help :: -cvalue ***   *JULIA ONLY*                     \n" ++
+       "-cvalue rectangular (float real) (float imag)                                           \n" ++
+       "   Sets the c-value of the fractal in rectanguar coordinates by defining the c-value's  \n" ++
+       "   real (x) and imaginary (y) components.                                               \n" ++
+       "-cvalue polar (float magnitude) (float phase (degrees))                                 \n" ++
+       "   Sets the c-value of the fractal in polar coordinates by defining the c-value's       \n" ++
+       "   magnitude (distance from the origin) and phase (angle).                              "
      )
    , ( "-se"
      , "*** Mayge's Fractal Generator :: Help :: -setcolor ***                                  \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        "
+       "-setcolor (int r1),(int g1),(int b1)                                                    \n" ++
+       "   Defines the color that should be used for pixels that are found to be in the set.    "
      )
    , ( "-st"
      , "*** Mayge's Fractal Generator :: Help :: -startingframe ***                             \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        \n" ++
-       "                                                                                        \n" ++
+       "-startingframe (int frame)                                                              \n" ++
+       "   Defines the frame to start the animation on. Useful for resuming animations that were\n" ++
+       "   interrupted by a power update or unexpected OS update.                               \n" ++
        "                                                                                        "
      )
    ]

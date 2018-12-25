@@ -64,12 +64,15 @@ defaultOptions = Options Mandelbrot
                          100
                          1
 
+-- Primary function that produces a set of options from a ist of arguments
 processArgs :: [String] -> Options
 processArgs = getOptionsFromArgs . separateArgs . normalizeArgs
 
+-- Makes sure all arguments are lowercase
 normalizeArgs :: [String] -> [String]
 normalizeArgs = map $ map toLower
 
+-- Group into arguments and their subarguments
 separateArgs :: [String] -> [[String]]
 separateArgs []       = []
 separateArgs (x : xs) = case lookup (take 3 x) arguments of
@@ -83,6 +86,7 @@ separateArgs (x : xs) = case lookup (take 3 x) arguments of
              xs
       in  (x : subArgs) : separateArgs args
 
+-- Lookup and process all arguments
 getOptionsFromArgs :: [[String]] -> Options
 getOptionsFromArgs = foldl
    (\opt (arg : subargs) ->
@@ -93,6 +97,7 @@ getOptionsFromArgs = foldl
    )
    defaultOptions
 
+-- Function to convert a string like "23,4,198" to a color
 colorFromString :: String -> I.Pixel I.RGB Double
 colorFromString s =
    case
