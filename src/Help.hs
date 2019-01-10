@@ -52,7 +52,7 @@ defaultHelp =
  "           |zoom fnl frms fIter                                                               \n" ++
  "           |iterations fnl frms                                                               \n" ++
  "           |theta fnl frms                                                                    \n" ++
- "           |linearC fnl frms                                                                \n" ++
+ "           |linearC fnl frms                                                                  \n" ++
  "                                                                                              \n" ++
  "-cvalue  |rectangular real imag  The point c used for ccreation of a Julia fractal            \n" ++
  "         |polar mag phase                                                                     \n" ++
@@ -151,7 +151,7 @@ argumentHelp =
        "   require more iterations to reveal all their detail.                                  \n" ++
        "-animation iterations (int final) (int frames)                                          \n" ++
        "   Generates an animation which varies the maximum number of iterations.                \n" ++
-       "-animation theta (float final) (int frames)   *JULIA ONLY*                              \n" ++
+       "-animation theta (float final) (int frames) *JULIA ONLY*                                \n" ++
        "   Generates an animation by varying the theta value (aka phase or angle) of the c-value\n" ++
        "   used to generate a Julia set.                                                        \n" ++
        "-animation linear (complex final) (int frames) *JULIA ONLY*                             \n" ++

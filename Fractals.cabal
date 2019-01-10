@@ -29,6 +29,7 @@ library
       Fractals
     , Colors
     , Input
+    , Help
   other-modules:
       Paths_Fractals
   hs-source-dirs:

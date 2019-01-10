@@ -31,7 +31,6 @@ data Color =
 data Animation =
    NoAnimation | Power Double | Zoom Double Int |
    Iterations Int | Theta Double | LinearC (Complex Double) deriving (Show)
-
 data Options = Options
    { fractalType     :: FractalType
    , resolution      :: (Int, Int)
