@@ -1,41 +1,57 @@
 module Colors
-   ( colorGrey
+   (
+   -- * Normalization functions
+     normLinear
+   , normSigmoid
+   , normPeriodic
+   , normSine
+   -- * Colorization functions
+   , colorGrey
    , colorHue
-   , colorSigmoidGrey
-   ) where
+   , colorGrad
+   )
+where
 
 import           Data.Complex
 import qualified Graphics.Image                as I
-import qualified Graphics.Image.ColorSpace     as I
-import qualified Graphics.Image.Types          as I
 
 mod' :: RealFloat a => a -> a -> a
 mod' x y = (-) x . (*) y . fromIntegral . truncate $ x / y
 
-colorGrey :: Double -> Maybe Double -> I.Pixel I.RGB Double
-colorGrey _      Nothing  = I.PixelRGB 0 0 0
-colorGrey period (Just x) = I.PixelRGB val val val
-   where val = (1 - cos ((x `mod'` period) / period * 6.2831853)) / 2
+normLinear :: Int -> Double -> Double
+normLinear max = (/ fromIntegral max)
 
-colorHue :: Double -> Maybe Double -> I.Pixel I.RGB Double
-colorHue _ Nothing                    = I.PixelRGB 0        0        0       
-colorHue period (Just i) | x <= 1 / 6 = I.PixelRGB x'       0        1       
-                         | x <= 1 / 3 = I.PixelRGB 1        0        (2 - x')
-                         | x <= 1 / 2 = I.PixelRGB 1        (x' - 2) 0       
-                         | x <= 2 / 3 = I.PixelRGB (4 - x') 1        0       
-                         | x <= 5 / 6 = I.PixelRGB 0        1        (x' - 4)
-                         | otherwise  = I.PixelRGB 0        (6 - x') 1       
+normSigmoid :: Double -> Double -> Double -> Double
+normSigmoid center power = (1 /) . (1 +) . (power **) . (/ (center / 4)) . (center -)
+
+normPeriodic :: Double -> Double -> Double
+normPeriodic period = (/ period) . flip mod' period
+
+normSine :: Double -> Double -> Double
+normSine period = (/ 2) . (1 -) . cos . (* 6.2831853) . (/ period) . (flip mod' period)
+
+colorGrey :: I.Pixel I.RGB Double -> Maybe Double -> I.Pixel I.RGB Double
+colorGrey setColor Nothing    = setColor
+colorGrey _        (Just val) = I.PixelRGB val val val
+
+colorGrad :: I.Pixel I.RGB Double -> Bool -> [I.Pixel I.RGB Double] -> Maybe Double -> I.Pixel I.RGB Double
+colorGrad convergentC _ _      Nothing  = convergentC
+colorGrad _           isCircular colorsIn (Just x) = interColors (colors !! section) (colors !! (section + 1))
  where
-  x  = (i `mod'` period) / period
-  x' = 6 * x
+  colors  = if isCircular then colorsIn ++ [head colorsIn] else colorsIn
+  count   = fromIntegral $ (subtract 1) $ length colors
+  section = truncate $ x * count
+  p       = (* count) $ (x `mod'`) $ 1 / count
+  inter i f = (i +) $ (* p) $ (f - i)
+  interColors (I.PixelRGB iR iG iB) (I.PixelRGB fR fG fB) =
+     I.PixelRGB (inter iR fR) (inter iG fG) (inter iB fB)
 
-colorSigmoidGrey :: Double -> Double -> Maybe Double -> I.Pixel I.RGB Double
-colorSigmoidGrey _     _        Nothing  = I.PixelRGB 0 0 0
-colorSigmoidGrey power midpoint (Just x) = I.PixelRGB val val val
-   where val = (1 /) $ (1 +) $ (power **) $ (midpoint - x) / (midpoint / 4)
-
-
--- colorGradient :: I.Pixel I.RGB Double -> [I.Pixel I.RGB Double] -> Double
---                -> Maybe Double -> I.Pixel I.RGB Double
--- colorGradient convergent _ _ Nothing = convergent
--- colorGradient _ 
+colorHue :: I.Pixel I.RGB Double -> Maybe Double -> I.Pixel I.RGB Double
+colorHue setColor Nothing = setColor
+colorHue _        (Just x) | x' <= 1   = I.PixelRGB x'       0        1       
+                           | x' <= 2   = I.PixelRGB 1        0        (2 - x')
+                           | x' <= 3   = I.PixelRGB 1        (x' - 2) 0       
+                           | x' <= 4   = I.PixelRGB (4 - x') 1        0       
+                           | x' <= 5   = I.PixelRGB 0        1        (x' - 4)
+                           | otherwise = I.PixelRGB 0        (6 - x') 1
+   where x' = 6 * x
