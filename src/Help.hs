@@ -49,9 +49,9 @@ defaultHelp =
  "                                                                                              \n" ++
  "-animation |none                 The animation that should be generated                       \n" ++
  "           |power fnl frms                                                                    \n" ++
- "           |zoom fnl frms fIter                                                               \n" ++
+ "           |zoom fnl frms (Optional: fIter)                                                   \n" ++
  "           |iterations fnl frms                                                               \n" ++
- "           |theta fnl frms                                                                    \n" ++
+ "           |theta fnl frms (Optional: fMag)                                                   \n" ++
  "           |linearC fnl frms                                                                  \n" ++
  "                                                                                              \n" ++
  "-cvalue  |rectangular real imag  The point c used for ccreation of a Julia fractal            \n" ++
@@ -145,13 +145,13 @@ argumentHelp =
        "   Generates a single frame.                                                            \n" ++
        "-animation power (float final) (int frames)                                             \n" ++
        "   Generates an animation which varies the power used in the iteration equation.        \n" ++
-       "-animation zoom (float final) (int frames) (int fianlIterations)                        \n" ++
+       "-animation zoom (float final) (int frames) (Optional: int fianlIterations)              \n" ++
        "   Generates an animation which zooms into the fractal to the specified final range,    \n" ++
        "   while also varying the maximum iteration count (as increasingly zoomed in views      \n" ++
        "   require more iterations to reveal all their detail.                                  \n" ++
        "-animation iterations (int final) (int frames)                                          \n" ++
        "   Generates an animation which varies the maximum number of iterations.                \n" ++
-       "-animation theta (float final) (int frames) *JULIA ONLY*                                \n" ++
+       "-animation theta (float final) (int frames) (Optional: float finalMagnitude)*JULIA ONLY*\n" ++
        "   Generates an animation by varying the theta value (aka phase or angle) of the c-value\n" ++
        "   used to generate a Julia set.                                                        \n" ++
        "-animation linear (complex final) (int frames) *JULIA ONLY*                             \n" ++

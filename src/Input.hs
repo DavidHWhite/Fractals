@@ -29,8 +29,8 @@ data Normalization =
 data Color =
    Greyscale | Hue | Gradient Bool [I.Pixel I.RGB Double] deriving (Show)
 data Animation =
-   NoAnimation | Power Double | Zoom Double Int |
-   Iterations Int | Theta Double | LinearC (Complex Double) deriving (Show)
+   NoAnimation | Power Double | Zoom Double (Maybe Int) |
+   Iterations Int | Theta Double (Maybe Double) | LinearC (Complex Double) deriving (Show)
 data Options = Options
    { fractalType     :: FractalType
    , resolution      :: (Int, Int)
@@ -118,7 +118,7 @@ arguments =
      , \(x : xs, opt) -> case (take 3 x) : xs of
         ("man" : []) -> opt { fractalType = Mandelbrot }
         ("jul" : []) -> opt { fractalType = Julia }
-        otherwise    -> error $ "Invalid arguments for -fractalType: \"" ++ (show (x : xs)) ++ "\""
+        otherwise    -> error $ "Invalid arguments for -fractalType: \"" ++ (show $ x : xs) ++ "\""
      )
    , ( "-re"
      , \case
@@ -129,7 +129,7 @@ arguments =
      , \(x : xs, opt) -> case (take 3 x) : xs of
         ("rec" : r : i : []) -> opt { center = read r :+ read i }
         ("pol" : m : p : []) -> opt { center = mkPolar (read m) ((/ 180) . (* pi) $ read p) }
-        otherwise            -> error $ "Invalid arguments for -center: \"" ++ (show (x : xs)) ++ "\""
+        otherwise            -> error $ "Invalid arguments for -center: \"" ++ (show $ x : xs) ++ "\""
      )
    , ( "-ra"
      , \case
@@ -150,7 +150,7 @@ arguments =
      , \(x : xs, opt) -> case (take 3 x) : xs of
         ("ena" : []) -> opt { aa = AAEnabled }
         ("dis" : []) -> opt { aa = AADisabled }
-        otherwise    -> error $ "Invalid arguments for -aa: \"" ++ (show (x : xs)) ++ "\""
+        otherwise    -> error $ "Invalid arguments for -aa: \"" ++ (show $ x : xs) ++ "\""
      )
    , ( "-no"
      , \(x : xs, opt) -> case (take 3 x) : xs of
@@ -159,7 +159,7 @@ arguments =
         ("sig" : c : p : []) -> opt { normalization = Sigmoid (read c) (read p) }
         ("per"     : p : []) -> opt { normalization = Periodic (read p) }
         ("sin"     : p : []) -> opt { normalization = Sine (read p) }
-        otherwise -> error $ "Invalid arguments for -normalization: \"" ++ (show (x : xs)) ++ "\""
+        otherwise -> error $ "Invalid arguments for -normalization: \"" ++ (show $ x : xs) ++ "\""
      )
    , ( "-co"
      , \(x : xs, opt) -> case (take 3 x) : xs of
@@ -171,29 +171,32 @@ arguments =
         ("gra" : args) -> if length args < 2
            then error "Insufficient colors for a gradient to be formed"
            else opt { color = (Gradient True $ map colorFromString args) }
-        otherwise -> error $ "Invalid arguments for -color: \"" ++ (show (x : xs)) ++ "\""
+        otherwise -> error $ "Invalid arguments for -color: \"" ++ (show $ x : xs) ++ "\""
      )
    , ( "-an"
      , \(x : xs, opt) -> case (take 3 x) : xs of
         ("non"           : []) -> opt { animation = NoAnimation }
         ("pow" : fn : fr : []) -> opt { animation = Power (read fn), frameCount = (read fr) }
+        ("zoo" : fn : fr : []) -> opt { animation = Zoom (read fn) Nothing, frameCount = (read fr) }
         ("zoo" : fn : fr : fi : []) ->
-           opt { animation = Zoom (read fn) (read fi), frameCount = (read fr) }
+           opt { animation = Zoom (read fn) (Just $ read fi), frameCount = (read fr) }
         ("ite" : fn : fr : []) -> opt { animation = Iterations (read fn), frameCount = (read fr) }
-        ("the" : fn : fr : []) -> opt { animation = Theta (read fn), frameCount = (read fr) }
+        ("the" : fn : fr : []) -> opt { animation = Theta (read fn) Nothing, frameCount = (read fr) }
+        ("the" : fn : fr : fm : []) ->
+           opt { animation = Theta (read fn) (Just $ read fm), frameCount = (read fr) }
         ("lin" : ty : xs) -> case ((take 3 ty) : xs) of
            ("rec" : r : i : fr : []) ->
               opt { animation = LinearC (read r :+ read i), frameCount = (read fr) }
            ("pol" : m : p : fr : []) ->
               opt { animation = LinearC (mkPolar (read m) ((/ 180) . (* pi) $ read p))
                   , frameCount = (read fr) }
-        otherwise -> error $ "Invalid arguments for -animation: \"" ++ (show (x : xs)) ++ "\""
+        otherwise -> error $ "Invalid arguments for -animation: \"" ++ (show $ x : xs) ++ "\""
      )
    , ( "-cv"
      , \(x : xs, opt) -> case (take 3 x) : xs of
         ("rec" : r : i : []) -> opt { cvalue = read r :+ read i }
         ("pol" : m : p : []) -> opt { cvalue = mkPolar (read m) ((/ 180) . (* pi) $ read p) }
-        otherwise            -> error $ "Invalid arguments for -cvalue: \"" ++ (show (x : xs)) ++ "\""
+        otherwise            -> error $ "Invalid arguments for -cvalue: \"" ++ (show $ x : xs) ++ "\""
      )
    , ( "-se"
      , \case
