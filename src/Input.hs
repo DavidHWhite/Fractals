@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE BangPatterns, LambdaCase #-}
 
 module Input
    ( Options(..)
@@ -99,16 +99,11 @@ getOptionsFromArgs = foldl
 -- Function to convert a string like "23,4,198" to a color
 colorFromString :: String -> I.Pixel I.RGB Double
 colorFromString s =
-   case
-         map ((/ 255) . read) . words $ foldr
-            (\char acc -> (if char == ',' then ' ' else char) : acc)
-            []
-            s
-      of
-         (r : g : b : []) -> if r <= 1 && g <= 1 && b <= 1
-            then I.PixelRGB r g b
-            else error "All color values must be on the interval [0,255]"
-         otherwise -> error "Invalid color for gradient"
+   case map ((/ 255) . read) . words $ map (\case ',' -> ' '; x -> x) s
+     of (r : g : b : []) -> if r <= 1 && g <= 1 && b <= 1
+           then I.PixelRGB r g b
+           else error "All color values must be on the interval [0,255]"
+        otherwise -> error "Invalid color format for gradient"
 
 -- Array of all command line arguments and functions to interpret their subarguments
 -- It is assumed that arguments have been converted to lowercase and shortened to 3 characters

@@ -36,15 +36,9 @@ fPoint bAAEnabled pixelSize maxIterations power f z0 = if not bAAEnabled
                     Just z  -> (sum + z, countConv, False)
               )
               (0, 0, False)
-              [ (-size') :+ (-size')
-              , (-size') :+ 0
-              , (-size') :+ size'
-              , 0 :+ (-size')
-              , 0 :+ 0
-              , 0 :+ size'
-              , size' :+ (-size')
-              , size' :+ 0
-              , size' :+ size'
+              [ (-size') :+ (-size'), (-size') :+ 0, (-size') :+ size'
+              , 0 :+ (-size'),        0 :+ 0,        0 :+ size'
+              , size' :+ (-size'),    size' :+ 0,    size' :+ size'
               ]
  where
   maxMagnitude = 50
