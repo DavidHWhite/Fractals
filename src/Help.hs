@@ -10,6 +10,13 @@ help (_ : x : _) = case lookup (take 3 x) argumentHelp of
    (Just y) -> y
 
 
+{-- 
+************************************
+TODO ADD HELP FOR GRID VISUALIZATION
+************************************
+--} 
+
+
 -- The text that gets printed if the user asks for help in their arguments
 defaultHelp :: String
 defaultHelp = 

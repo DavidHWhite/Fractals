@@ -30,7 +30,8 @@ data Color =
    Greyscale | Hue | Gradient Bool [I.Pixel I.RGB Double] deriving (Show)
 data Animation =
    NoAnimation | Power Double | Zoom Double (Maybe Int) |
-   Iterations Int | Theta Double (Maybe Double) | LinearC (Complex Double) deriving (Show)
+   Iterations Int | Theta Double (Maybe Double) | LinearC (Complex Double) |
+   Grid Double Double Double Double Int Int deriving (Show)
 data Options = Options
    { fractalType     :: FractalType
    , resolution      :: (Int, Int)
@@ -185,6 +186,9 @@ arguments =
            ("pol" : m : p : fr : []) ->
               opt { animation = LinearC (mkPolar (read m) ((/ 180) . (* pi) $ read p))
                   , frameCount = (read fr) }
+        ("gri" : ri : rl : ii : il : rc : ic : []) ->
+            opt { animation = Grid (read ri) (read rl) (read ii) (read il) (read rc) (read ic)
+                , frameCount = (read rc) * (read ic) }
         otherwise -> error $ "Invalid arguments for -animation: \"" ++ (show $ x : xs) ++ "\""
      )
    , ( "-cv"
@@ -220,4 +224,4 @@ pPrintOptions options =
    "C-Value:         " ++ (show $ cvalue        options) ++ '\n' :
    "Set Color:       " ++ (show $ setColor      options) ++ '\n' :
    "Frames:          " ++ (show $ frameCount    options) ++ '\n' :
-   "Starting frame:  " ++ (show $ startingFrame options)
+   "Starting Frame:  " ++ (show $ startingFrame options)

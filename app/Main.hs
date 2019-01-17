@@ -92,24 +92,30 @@ fractal args options@(Options fractalType (numRows, numColumns) (centerReal :+ c
    animVals = map
       (case animation of
          Zoom final _ -> ((exp $ (log (final / range)) / (frames - 1)) **)
+         Grid rIni rFnl _ _ rNum _ ->
+            interpolate rIni rFnl . (/ (fromIntegral rNum - 1)) . fromIntegral . (`mod` rNum) . floor
          otherwise ->
             case animation of
-               NoAnimation      -> \x -> 1
-               Power      final -> interpolate power final
-               Iterations final -> interpolate (fromIntegral iterations) (fromIntegral final)
-               Theta final _    -> interpolate (phase cValue) (final * pi / 180)
-               LinearC final    -> interpolate (realPart cValue) (realPart final)
+                NoAnimation      -> \x -> 1
+                Power final      -> interpolate power final
+                Iterations final -> interpolate (fromIntegral iterations) (fromIntegral final)
+                Theta final _    -> interpolate (phase cValue) (final * pi / 180)
+                LinearC final    -> interpolate (realPart cValue) (realPart final)
             . if frames /= 1 then (/ (frames - 1)) else id
       )
       [fromIntegral startingFrame - 1 .. frames - 1]
    altAnimVals = map
-      ( case animation of
-            Zoom _ (Just finalIter) -> interpolate (fromIntegral iterations) (fromIntegral finalIter)
-            Zoom _ Nothing          -> \x -> fromIntegral iterations
-            Theta _ (Just final)    -> interpolate (magnitude cValue) final
-            Theta _ Nothing         -> \x -> magnitude cValue
-            LinearC final           -> interpolate (imagPart cValue) (imagPart final)
-      . if frames /= 1 then (/ (frames - 1)) else id
+      (case animation of
+         Grid _ _ iIni iFnl rNum iNum ->
+            interpolate iIni iFnl . (/ (fromIntegral iNum - 1)) . fromIntegral . (`div` rNum) . floor
+         otherwise ->
+            case animation of
+                Zoom _ (Just finalIter) -> interpolate (fromIntegral iterations) (fromIntegral finalIter)
+                Zoom _ Nothing          -> \x -> fromIntegral iterations
+                Theta _ (Just final)    -> interpolate (magnitude cValue) final
+                Theta _ Nothing         -> \x -> magnitude cValue
+                LinearC final           -> interpolate (imagPart cValue) (imagPart final)
+            . if frames /= 1 then (/ (frames - 1)) else id
       )
       [fromIntegral startingFrame - 1 .. frames - 1]
    fractalFunction :: Int -> (Int, Int) -> Maybe Double
@@ -127,6 +133,8 @@ fractal args options@(Options fractalType (numRows, numColumns) (centerReal :+ c
          error "Theta animations can only be generated for Julia fractals"
       (Mandelbrot, LinearC _) ->
          error "Linear C-Value animations can only be generated for Julia fractals"
+      (Mandelbrot, Grid _ _ _ _ _ _) ->
+         error "Grided c-values can only be generated for Julia fractals"
       -- Julia animation functions
       (Julia, NoAnimation) ->
          pJulia aa pixelSize iterations power cValue $ pairToComplex (r, c)
@@ -139,6 +147,8 @@ fractal args options@(Options fractalType (numRows, numColumns) (centerReal :+ c
       (Julia, Theta _ _) ->
          pJulia aa pixelSize iterations power (mkPolar altValue value) $ pairToComplex (r, c)
       (Julia, LinearC _) ->
+         pJulia aa pixelSize iterations power (value :+ altValue) $ pairToComplex (r, c)
+      (Julia, Grid _ _ _ _ _ _) ->
          pJulia aa pixelSize iterations power (value :+ altValue) $ pairToComplex (r, c)
       where
          -- The value being animated
